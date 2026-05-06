@@ -922,7 +922,9 @@ function addConn(a,b){
   scheduleAutosave();
 }
 
-function updateConnLines(){connections.forEach(c=>c.line.setLatLngs([[c.a.lat,c.a.lng],[c.b.lat,c.b.lng]]]);}
+function updateConnLines(){
+  connections.forEach(c=>c.line.setLatLngs([[c.a.lat,c.a.lng],[c.b.lat,c.b.lng]]));
+}
 
 // ════════════════════════════════════════
 // REMOVE
