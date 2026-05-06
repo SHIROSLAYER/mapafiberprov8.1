@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FiberMap Pro v4</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -233,6 +231,9 @@ input[type=color]{width:26px;height:26px;border:1px solid var(--border);border-r
   <div class="tbg">
     <button class="tb exp" onclick="exportGeoJSON()">↓ GeoJSON</button>
     <button class="tb exp" onclick="exportKMZ()">↓ KMZ</button>
+    <button class="tb exp" onclick="downloadProjectJSON()">↓ Projeto</button>
+    <button class="tb" onclick="document.getElementById('fproj').click()">↑ Projeto</button>
+    <input type="file" id="fproj" accept=".json,application/json" onchange="importProjectFile(event)" style="display:none">
     <button class="tb danger" onclick="askClear()">✕ Limpar</button>
   </div>
 </div>
@@ -428,21 +429,155 @@ let currentEM=null;
 let fiberMode='drag',fiberDragState=null;
 
 // ════════════════════════════════════════
+// PROJECT PERSISTENCE (localStorage + JSON)
+// ════════════════════════════════════════
+const PROJECT_STORAGE_KEY='fiberMapPro.project.v1';
+let projectMeta={name:'Projeto sem nome',savedAt:null};
+
+function buildProjectSnapshot(){
+  const snap={
+    version:1,
+    meta:{...projectMeta},
+    view: map ? { center: map.getCenter(), zoom: map.getZoom() } : null,
+    counters:{pcnt,ctocnt,ceocnt,cabocnt},
+    postes: postes.map(p=>({id:p.id,num:p.num,lat:p.lat,lng:p.lng,tipo:p.tipo,nome:p.nome,obs:p.obs||''})),
+    ctos: ctos.map(c=>({id:c.id,num:c.num,lat:c.lat,lng:c.lng,tipo:c.tipo,nome:c.nome,obs:c.obs||'',portas:c.portas||8,fibers:c.fibers||{connections:[],splitters:[]}})),
+    ceos: ceos.map(c=>({id:c.id,num:c.num,lat:c.lat,lng:c.lng,tipo:c.tipo,nome:c.nome,obs:c.obs||'',bandejas:c.bandejas||12,fibers:c.fibers||{connections:[],splitters:[]}})),
+    cabos: cabos.map(c=>({
+      id:c.id,tipo:c.tipo,
+      points:c.points,
+      grupos:c.grupos,fpg:c.fpg,total:c.total,
+      estilo:c.estilo,color:c.color,typeId:c.typeId,typeName:c.typeName,
+      dist:c.dist,nome:c.nome||c.id,obs:c.obs||'',
+      anchors:c.anchors||[],anchorMap:c.anchorMap||{},
+      fibers:c.fibers||{connections:[],splitters:[]}
+    })),
+    connections: connections.map(c=>({aId:c.a.id,bId:c.b.id}))
+  };
+  snap.meta.savedAt=new Date().toISOString();
+  return snap;
+}
+
+function applyProjectSnapshot(snap){
+  if(!snap || snap.version!==1) throw new Error('Formato de projeto inválido (versão).');
+
+  // clear current
+  postes.forEach(p=>map.removeLayer(p.marker));
+  ctos.forEach(p=>map.removeLayer(p.marker));
+  ceos.forEach(p=>map.removeLayer(p.marker));
+  cabos.forEach(c=>map.removeLayer(c.poly));
+  connections.forEach(c=>map.removeLayer(c.line));
+  cleanupCabo();
+  postes=[];ctos=[];ceos=[];cabos=[];connections=[];
+  selectedElem=null;connFirst=null;
+
+  projectMeta=snap.meta||projectMeta;
+  pcnt=(snap.counters && typeof snap.counters.pcnt==='number') ? snap.counters.pcnt : 0;
+  ctocnt=(snap.counters && typeof snap.counters.ctocnt==='number') ? snap.counters.ctocnt : 0;
+  ceocnt=(snap.counters && typeof snap.counters.ceocnt==='number') ? snap.counters.ceocnt : 0;
+  cabocnt=(snap.counters && typeof snap.counters.cabocnt==='number') ? snap.counters.cabocnt : 0;
+
+  // recreate points
+  (snap.postes||[]).forEach(p=>addPoste(p.lat,p.lng,{num:p.num,nome:p.nome,obs:p.obs}));
+  (snap.ctos||[]).forEach(c=>{ const el=addCTO(c.lat,c.lng,{num:c.num,nome:c.nome,obs:c.obs,portas:c.portas}); el.fibers=c.fibers||{connections:[],splitters:[]}; });
+  (snap.ceos||[]).forEach(c=>{ const el=addCEO(c.lat,c.lng,{num:c.num,nome:c.nome,obs:c.obs,bandejas:c.bandejas}); el.fibers=c.fibers||{connections:[],splitters:[]}; });
+
+  // recreate cables (direct draw)
+  (snap.cabos||[]).forEach(c=>{
+    const poly=L.polyline(c.points,{color:c.color,weight:4,opacity:.9}).addTo(map);
+    const dd={...c};
+    dd.poly=poly;
+    cabos.push(dd);
+    poly.on('click',e=>{L.DomEvent.stopPropagation(e);selectedElem=dd;});
+    poly.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(dd);});
+  });
+
+  // recreate logical connections
+  (snap.connections||[]).forEach(cc=>{
+    const a=findById(cc.aId),b=findById(cc.bId);
+    if(a&&b){
+      const line=L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:'#8b949e',weight:1.5,dashArray:'6,4',opacity:.7}).addTo(map);
+      connections.push({a,b,line});
+    }
+  });
+
+  updStats();updList();updCableLegend();
+  if(snap.view && snap.view.center && typeof snap.view.zoom==='number'){
+    map.setView([snap.view.center.lat, snap.view.center.lng], snap.view.zoom);
+  }
+}
+
+function saveProjectToLocal(){
+  try{
+    const snap=buildProjectSnapshot();
+    try{
+      localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(snap));
+    }catch(e){
+      // Em alguns navegadores/políticas, localStorage pode falhar em file://
+      console.warn('localStorage indisponível:', e);
+    }
+  }catch(e){
+    console.warn('Falha ao salvar no localStorage:',e);
+  }
+}
+
+function loadProjectFromLocal(){
+  let raw=null;
+  try{
+    raw=localStorage.getItem(PROJECT_STORAGE_KEY);
+  }catch(e){
+    console.warn('localStorage indisponível:', e);
+    return false;
+  }
+  if(!raw) return false;
+  const snap=JSON.parse(raw);
+  applyProjectSnapshot(snap);
+  return true;
+}
+
+function downloadProjectJSON(){
+  const snap=buildProjectSnapshot();
+  const blob=new Blob([JSON.stringify(snap,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`fiber_project_${(new Date()).toISOString().replace(/[:.]/g,'-')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importProjectFile(evt){
+  const file=evt.target.files[0];
+  if(!file) return;
+  evt.target.value='';
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const snap=JSON.parse(e.target.result);
+      applyProjectSnapshot(snap);
+      saveProjectToLocal();
+      alert('Projeto carregado com sucesso.');
+    }catch(err){
+      alert('Erro ao importar projeto:\n'+err.message);
+    }
+  };
+  r.readAsText(file);
+}
+
+let autosaveTimer=null;
+function scheduleAutosave(){
+  if(autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer=setTimeout(()=>saveProjectToLocal(),600);
+}
+
+// ════════════════════════════════════════
 // MAP INIT
 // ════════════════════════════════════════
 function initMap(){
   map=L.map('map',{zoomControl:false,doubleClickZoom:false}).setView([-15.9,-52.22],13);
   L.control.zoom({position:'bottomright'}).addTo(map);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom:21,
-    crossOrigin:true
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:21
   }).addTo(map);
-  map.on('tileerror',function(){
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/voyager/{z}/{x}/{y}{r}.png',{
-      attribution:'© CartoDB',maxZoom:21,crossOrigin:true
-    }).addTo(map);
-  });
   map.on('click',onMapClick);
   map.on('dblclick',onMapDblClick);
   map.on('mousemove',e=>{
@@ -670,6 +805,7 @@ function confirmMove(d){
       // update anchored cables
       updateAnchoredCabos(d);
       updateConnLines();updStats();
+      scheduleAutosave();
     },
     ()=>d.marker.setLatLng([d._pLat,d._pLng]),
     'gn'
@@ -735,6 +871,7 @@ function finishCabo(){
 
   cleanupCabo();
   updStats();updList();updCableLegend();
+  scheduleAutosave();
 }
 
 function cancelCabo(){cleanupCabo();if(mode==='cabo')setMode('select');}
@@ -782,6 +919,7 @@ function addConn(a,b){
   if(connections.find(c=>(c.a.id===a.id&&c.b.id===b.id)||(c.a.id===b.id&&c.b.id===a.id))){alert('Conexão já existe.');return;}
   const line=L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:'#8b949e',weight:1.5,dashArray:'6,4',opacity:.7}).addTo(map);
   connections.push({a,b,line});updStats();updList();
+  scheduleAutosave();
 }
 
 function updateConnLines(){connections.forEach(c=>c.line.setLatLngs([[c.a.lat,c.a.lng],[c.b.lat,c.b.lng]]]);}
@@ -803,6 +941,7 @@ function doRemove(d){
   else if(d.tipo==='cabo'){const i=cabos.findIndex(p=>p.id===d.id);if(i>=0){map.removeLayer(cabos[i].poly);cabos.splice(i,1);}}
   if(selectedElem&&selectedElem.id===d.id)selectedElem=null;
   updStats();updList();updCableLegend();closeEmModal();
+  scheduleAutosave();
 }
 
 // ════════════════════════════════════════
@@ -961,7 +1100,8 @@ function switchEmTab(i){
   document.querySelectorAll('.em-tab').forEach((t,j)=>t.classList.toggle('act',i===j));
   document.querySelectorAll('.etc').forEach((t,j)=>t.classList.toggle('act',i===j));
   if(currentEM&&(currentEM.tipo==='ceo'||currentEM.tipo==='cto')){
-    const lbl=document.querySelectorAll('.em-tab')[i]?.textContent||'';
+    const tabs=document.querySelectorAll('.em-tab');
+    const lbl=(tabs && tabs[i] && tabs[i].textContent) ? tabs[i].textContent : '';
     if(lbl.includes('Diagrama'))setTimeout(()=>initFiberDiag(currentEM),60);
   }
 }
@@ -976,6 +1116,7 @@ function saveProps(){
   if(d.tipo==='ceo'){const e=document.getElementById('pi-bandejas');if(e)d.bandejas=parseInt(e.value)||12;}
   document.getElementById('em-h2').textContent=d.nome||d.id;
   updList();
+  scheduleAutosave();
   const btn=event.target;btn.textContent='✓ Salvo!';setTimeout(()=>btn.textContent='✓ Salvar',1500);
 }
 
@@ -1228,8 +1369,11 @@ function bindFiberDragEvents(d,svg){
     if(!cl)return;
     const idx=parseInt(cl.dataset.idx);
     if(isNaN(idx))return;
-    const a=abntColor(d.fibers.connections[idx]?.fromFi||0);
-    showConf('Remover conexão?',`Remove a fusão <strong>F${(d.fibers.connections[idx]?.fromFi||0)+1} (${a.fiber.name})</strong> → <strong>F${(d.fibers.connections[idx]?.toFi||0)+1}</strong>?`,
+    const conn=(d.fibers && d.fibers.connections && d.fibers.connections[idx]) ? d.fibers.connections[idx] : null;
+    const fromFi=conn && typeof conn.fromFi==='number' ? conn.fromFi : 0;
+    const toFi=conn && typeof conn.toFi==='number' ? conn.toFi : 0;
+    const a=abntColor(fromFi);
+    showConf('Remover conexão?',`Remove a fusão <strong>F${fromFi+1} (${a.fiber.name})</strong> → <strong>F${toFi+1}</strong>?`,
       ()=>{d.fibers.connections.splice(idx,1);initFiberDiag(d);},null,'red');
   });
 }
@@ -1351,6 +1495,7 @@ function parseKML(txt){
     });
     if(bounds.length)map.fitBounds(L.latLngBounds(bounds),{padding:[40,40]});
     updStats();updList();updCableLegend();
+  scheduleAutosave();
     alert(`Importado! ${cnt} elementos carregados.`);
   }catch(er){alert('Erro KML:\n'+er.message);}
 }
@@ -1409,16 +1554,12 @@ document.getElementById('conf-overlay').addEventListener('click',function(e){if(
 // INIT
 // ════════════════════════════════════════
 window.addEventListener('load',()=>{
-  if(typeof L==='undefined'){
-    document.getElementById('map').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#e6edf3;font-family:monospace">Leaflet não carregou. Verifique sua conexão.</div>';
-    return;
-  }
-  try{
-    initMap();buildCableTypeGrid();updStats();updList();
-  }catch(e){
-    console.error('Erro ao inicializar mapa:',e);
-    document.getElementById('map').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#e6edf3;font-family:monospace">Erro ao carregar mapa: '+e.message+'</div>';
-  }
+  initMap();
+  buildCableTypeGrid();
+  const loaded=loadProjectFromLocal();
+  if(!loaded){updStats();updList();}
+  updCableLegend();
+  setTimeout(()=>{ try{ map.invalidateSize(true); }catch(_){} },80);
 });
 </script>
 </body>
