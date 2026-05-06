@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FiberMap Pro v4</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#2d333b;
+  --border:#30363d;--border2:#484f58;
+  --text:#e6edf3;--text2:#8b949e;--text3:#484f58;
+  --green:#1D9E75;--green2:#0d6b50;--glow:rgba(29,158,117,.18);
+  --blue:#3B82F6;--amber:#F59E0B;--red:#EF4444;--purple:#8B5CF6;--cyan:#06B6D4;
+  --r:6px;--rl:10px;--rxl:14px;
+  --font:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font)}
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* TOPBAR */
+#topbar{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--border);height:48px;flex-shrink:0;padding:0 12px;overflow-x:auto;gap:0}
+#logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--green);padding-right:16px;border-right:1px solid var(--border);margin-right:10px;white-space:nowrap}
+#logo svg{width:22px;height:22px}
+.tbg{display:flex;align-items:center;gap:4px;padding:0 10px;border-right:1px solid var(--border);flex-shrink:0}
+.tbg:last-child{border-right:none;margin-left:auto}
+.tbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-right:4px;font-family:var(--mono)}
+.tb{display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:12px;font-family:var(--font);font-weight:500;transition:all .15s;white-space:nowrap}
+.tb:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.tb.act{background:var(--green2);color:#fff;border-color:var(--green);box-shadow:0 0 10px var(--glow)}
+.tb.danger:hover{background:rgba(239,68,68,.1);color:var(--red);border-color:var(--red)}
+.tb.exp:hover{background:rgba(59,130,246,.1);color:var(--blue);border-color:var(--blue)}
+.tsel{padding:5px 8px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;font-family:var(--font);cursor:pointer;outline:none}
+input[type=color]{width:26px;height:26px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:none;padding:2px}
+
+/* MAIN */
+#main{display:flex;flex:1;overflow:hidden}
+
+/* LEFT */
+#lp{width:210px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.ps{border-bottom:1px solid var(--border);padding:10px 12px}
+.pt{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono);margin-bottom:8px}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:7px 9px}
+.sl{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.sv{font-size:17px;font-weight:700;margin-top:2px}
+.sv.blue{color:var(--blue)}.sv.amber{color:var(--amber)}.sv.red{color:var(--red)}.sv.green{color:var(--green)}
+.sf{grid-column:span 2}
+.li{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);padding:2px 0}
+.ld{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ll{width:18px;height:3px;border-radius:2px;flex-shrink:0}
+#elw{flex:1;overflow-y:auto}
+.ei{display:flex;align-items:center;gap:7px;padding:6px 12px;cursor:pointer;font-size:11px;color:var(--text2);border-bottom:1px solid rgba(48,54,61,.4);transition:background .1s}
+.ei:hover{background:var(--bg3);color:var(--text)}
+.ei.sel{background:var(--green2);color:#fff}
+.eid{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ein{flex:1;font-family:var(--mono)}
+.eidel{color:var(--red);opacity:0;cursor:pointer;padding:0 3px;font-size:13px}
+.ei:hover .eidel{opacity:1}
+
+/* MAP */
+#mw{flex:1;position:relative}
+#map{width:100%;height:100%}
+
+/* STATUSBAR */
+#sb{height:26px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:14px;font-size:11px;font-family:var(--mono);color:var(--text3);flex-shrink:0}
+.sbv{color:var(--text2)}
+#sbm{color:var(--green);font-weight:600}
+
+/* ═══ CABLE CREATION MODAL ═══ */
+#cable-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:8000;align-items:center;justify-content:center}
+#cable-overlay.show{display:flex}
+#cable-modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.7)}
+.cm-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.cm-hdr h2{font-size:15px;font-weight:700}
+.cm-close{width:28px;height:28px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+.cm-close:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.cm-body{padding:20px}
+.cm-section{margin-bottom:18px}
+.cm-label{font-size:11px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.cm-input{width:100%;padding:9px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:13px;outline:none}
+.cm-input:focus{border-color:var(--green)}
+.cm-row{display:flex;gap:10px}
+.cm-row .cm-input{flex:1}
+.cable-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.ctb{padding:10px 8px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);cursor:pointer;text-align:center;transition:all .15s}
+.ctb:hover{border-color:var(--border2);background:var(--bg4)}
+.ctb.sel{border-color:var(--green);background:rgba(29,158,117,.1)}
+.ctb-name{font-size:12px;font-weight:600;color:var(--text);font-family:var(--mono)}
+.ctb-desc{font-size:10px;color:var(--text3);margin-top:2px}
+.cm-custom-row{display:flex;gap:8px;margin-top:10px;align-items:flex-end}
+.cm-custom-row .cm-input{flex:1}
+.cm-custom-row .cm-label{white-space:nowrap}
+.color-preview{width:36px;height:36px;border-radius:var(--r);border:2px solid var(--border);flex-shrink:0}
+.cm-footer{display:flex;gap:8px;justify-content:flex-end;padding:0 20px 20px}
+.cm-btn{padding:9px 20px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:var(--font);font-size:13px;font-weight:500;transition:all .15s}
+.cm-btn.primary{background:var(--green2);color:#fff;border-color:var(--green)}
+.cm-btn.primary:hover{background:var(--green)}
+
+/* FIBER COUNT PREVIEW */
+.fiber-preview{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px;padding:8px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);min-height:32px}
+.fp-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(0,0,0,.3);cursor:default;position:relative}
+.fp-dot:hover::after{content:attr(title);position:absolute;left:18px;top:-4px;background:var(--bg);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:10px;white-space:nowrap;z-index:100;font-family:var(--mono);color:var(--text);pointer-events:none}
+
+/* ═══ ELEMENT DETAIL MODAL ═══ */
+#em-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center}
+#em-overlay.show{display:flex}
+#em-modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);width:820px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.7);overflow:hidden}
+#emhdr{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+#em-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--mono);flex-shrink:0}
+#em-ttl{flex:1}
+#em-ttl h2{font-size:15px;font-weight:700}
+#em-ttl p{font-size:11px;color:var(--text3);font-family:var(--mono)}
+#em-x{width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .12s}
+#em-x:hover{background:var(--red);color:#fff;border-color:var(--red)}
+#em-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg3)}
+.em-tab{flex:1;padding:9px 0;text-align:center;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono)}
+.em-tab:hover:not(.act){color:var(--text2)}
+.em-tab.act{color:var(--green);border-bottom-color:var(--green);background:var(--bg2)}
+#em-body{flex:1;overflow:hidden;display:flex}
+.etc{display:none;flex:1;overflow-y:auto;padding:16px 18px}
+.etc.act{display:block}
+
+/* Props */
+.prs{margin-bottom:16px}
+.prt{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;font-family:var(--mono);margin-bottom:8px}
+.prr{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2);padding:6px 0;border-bottom:1px solid rgba(48,54,61,.4)}
+.prr:last-child{border-bottom:none}
+.pv{color:var(--text);font-family:var(--mono);font-size:11px}
+.pv.green{color:var(--green)}.pv.amber{color:var(--amber)}.pv.red{color:var(--red)}
+.pin{padding:5px 9px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;font-family:var(--mono);outline:none;width:180px}
+.pin:focus{border-color:var(--green)}
+.pact{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.pab{padding:7px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:12px;font-family:var(--font);font-weight:500;transition:all .15s}
+.pab:hover{background:var(--bg4);color:var(--text)}
+.pab.gn{background:var(--green2);color:#fff;border-color:var(--green)}.pab.gn:hover{background:var(--green)}
+.pab.rd{border-color:rgba(239,68,68,.4);color:var(--red)}.pab.rd:hover{background:rgba(239,68,68,.1)}
+.pab.am{border-color:rgba(245,158,11,.4);color:var(--amber)}.pab.am:hover{background:rgba(245,158,11,.1)}
+
+/* Cable items */
+.ci{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);margin-bottom:7px}
+.ci-info{flex:1}
+.ci-name{font-size:12px;font-weight:600;color:var(--text);font-family:var(--mono)}
+.ci-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.ci-dir{font-size:10px;padding:2px 7px;border-radius:3px;font-family:var(--mono);font-weight:600}
+.ci-in{background:rgba(29,158,117,.15);color:var(--green)}
+.ci-out{background:rgba(59,130,246,.15);color:var(--blue)}
+
+/* Attenuation */
+.ac{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:8px}
+.ac-t{font-size:12px;font-weight:600;color:var(--text);font-family:var(--mono)}
+.ar{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);padding:3px 0;font-family:var(--mono)}
+.ar span:last-child{color:var(--text)}
+.ab{display:inline-block;padding:3px 8px;border-radius:3px;font-size:10px;font-weight:600;font-family:var(--mono);margin-top:6px}
+.ab.ok{background:rgba(29,158,117,.15);color:var(--green)}
+.ab.wn{background:rgba(245,158,11,.15);color:var(--amber)}
+.ab.bd{background:rgba(239,68,68,.15);color:var(--red)}
+
+/* Quick add */
+.qag{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px}
+.qab{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 8px;border-radius:var(--rl);border:1px solid var(--border);background:var(--bg3);cursor:pointer;transition:all .15s;text-align:center}
+.qab:hover{border-color:var(--border2);background:var(--bg4)}
+.qai{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:var(--mono)}
+.qal{font-size:11px;color:var(--text2);font-family:var(--mono)}
+
+/* Fiber diagram canvas */
+#fcd{width:100%;height:100%;position:relative}
+#fcd-toolbar{position:sticky;top:0;z-index:10;background:#0d1117;padding:8px 10px;border-bottom:1px solid #30363d;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.fcb{padding:5px 10px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:11px;cursor:pointer;font-family:var(--mono);transition:all .12s}
+.fcb:hover{background:var(--bg4);color:var(--text)}
+.fcb.af{background:var(--green2);color:#fff;border-color:var(--green)}
+#fc-info{font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:4px}
+#fiber-svg{display:block;width:100%}
+#fcd-status{position:sticky;bottom:0;left:0;padding:6px 10px;font-size:10px;color:var(--text3);font-family:var(--mono);background:#0d1117;border-top:1px solid #21262d}
+
+/* CONFIRM */
+#conf-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;align-items:center;justify-content:center}
+#conf-overlay.show{display:flex}
+#conf-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:22px 24px;min-width:300px;max-width:420px;box-shadow:0 16px 60px rgba(0,0,0,.6)}
+#conf-box h3{font-size:14px;font-weight:600;margin-bottom:8px}
+#conf-box p{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:18px}
+#conf-btns{display:flex;gap:8px;justify-content:flex-end}
+.cfb{padding:7px 16px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:var(--font);font-size:13px;font-weight:500;transition:all .15s}
+.cfb:hover{background:var(--bg4)}
+.cfb.ok{background:var(--red);color:#fff;border-color:var(--red)}
+.cfb.ok:hover{background:#dc2626}
+.cfb.ok.gn{background:var(--green2);border-color:var(--green)}
+.cfb.ok.gn:hover{background:var(--green)}
+
+/* Anchor visual on map */
+.poste-anchor{filter:drop-shadow(0 0 6px #1D9E75)}
+
+/* Leaflet */
+.leaflet-container{background:#1a1f2e}
+.leaflet-popup-content-wrapper{background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:var(--rl);box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.leaflet-popup-tip{background:var(--bg2)}
+.leaflet-popup-content{font-family:var(--font);font-size:13px;min-width:100px}
+.leaflet-control-zoom a{background:var(--bg2)!important;color:var(--text)!important;border-color:var(--border)!important}
+.leaflet-control-zoom a:hover{background:var(--bg3)!important}
+.leaflet-control-attribution{background:rgba(13,17,23,.8)!important;color:var(--text3)!important;font-size:10px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+#fkml{display:none}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div id="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h4M17 12h4M12 3v4M12 17v4"/><path d="M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8"/></svg>
+    FiberMap Pro
+  </div>
+  <div class="tbg">
+    <span class="tbl">Modo</span>
+    <button class="tb act" id="btn-select" onclick="setMode('select')">↖ Selecionar</button>
+    <button class="tb" id="btn-poste" onclick="setMode('poste')">◉ Poste [P]</button>
+    <button class="tb" id="btn-cto" onclick="setMode('cto')">▣ CTO [T]</button>
+    <button class="tb" id="btn-ceo" onclick="setMode('ceo')">◆ CEO [E]</button>
+    <button class="tb" id="btn-cabo" onclick="setMode('cabo')">⌇ Cabo [C]</button>
+    <button class="tb" id="btn-conn" onclick="setMode('conn')">⟷ Conectar [N]</button>
+  </div>
+  <div class="tbg">
+    <button class="tb" onclick="document.getElementById('fkml').click()">↑ KML/KMZ</button>
+    <input type="file" id="fkml" accept=".kml,.kmz" onchange="loadKML(event)">
+  </div>
+  <div class="tbg">
+    <button class="tb exp" onclick="exportGeoJSON()">↓ GeoJSON</button>
+    <button class="tb exp" onclick="exportKMZ()">↓ KMZ</button>
+    <button class="tb danger" onclick="askClear()">✕ Limpar</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="lp">
+    <div class="ps">
+      <div class="pt">Estatísticas</div>
+      <div class="sg">
+        <div class="sc"><div class="sl">Postes</div><div class="sv blue" id="cnt-p">0</div></div>
+        <div class="sc"><div class="sl">CTOs</div><div class="sv amber" id="cnt-t">0</div></div>
+        <div class="sc"><div class="sl">CEOs</div><div class="sv red" id="cnt-e">0</div></div>
+        <div class="sc"><div class="sl">Cabos</div><div class="sv" id="cnt-c">0</div></div>
+        <div class="sc sf"><div class="sl">Total cabo</div><div class="sv green" id="cnt-m">0 m</div></div>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="pt">Legenda</div>
+      <div class="li"><div class="ld" style="background:#3B82F6"></div>Poste</div>
+      <div class="li"><div class="ld" style="background:#F59E0B"></div>CTO</div>
+      <div class="li"><div class="ld" style="background:#EF4444"></div>CEO/Emenda</div>
+      <div style="height:5px"></div>
+      <div class="li"><div class="ll" style="background:#1D9E75"></div>Cabo ancorado</div>
+      <div class="li"><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="4,3"/></svg>&nbsp;Conexão lógica</div>
+      <div style="height:5px"></div>
+      <div id="cable-legend"></div>
+    </div>
+    <div class="ps" style="border-bottom:none;padding-bottom:4px">
+      <div class="pt">Elementos <small style="color:var(--text3);font-size:9px">2×clique = detalhes</small></div>
+    </div>
+    <div id="elw"><div id="elist"></div></div>
+  </div>
+  <div id="mw"><div id="map"></div></div>
+</div>
+
+<!-- STATUSBAR -->
+<div id="sb">
+  <div>Modo: <span class="sbv" id="sbm">Selecionar</span></div>
+  <div>Zoom: <span class="sbv" id="sbz">13</span></div>
+  <div>Lat: <span class="sbv" id="sblat">—</span></div>
+  <div>Lng: <span class="sbv" id="sblng">—</span></div>
+  <div style="margin-left:auto;color:var(--text3)">S·P·T·E·C·N · Del=apagar · Esc=cancelar · Enter=finalizar cabo · 2×clique=detalhes</div>
+  <div style="color:var(--green)">FiberMap Pro v4.0</div>
+</div>
+</div>
+
+<!-- ═══ CABLE CREATION MODAL ═══ -->
+<div id="cable-overlay">
+<div id="cable-modal">
+  <div class="cm-hdr">
+    <h2>🔌 Novo Cabo de Fibra</h2>
+    <button class="cm-close" onclick="closeCableModal()">✕</button>
+  </div>
+  <div class="cm-body">
+    <div class="cm-section">
+      <div class="cm-label">Identificação do cabo</div>
+      <input class="cm-input" id="cm-id" placeholder="Ex: Cabo-01, Trecho-A, SpineA-CTO3">
+    </div>
+    <div class="cm-section">
+      <div class="cm-label">Tipo de cabo</div>
+      <div class="cable-type-grid" id="cable-type-grid"></div>
+    </div>
+    <div class="cm-section">
+      <div class="cm-label">Ou personalize sua estrutura</div>
+      <div class="cm-row" style="flex-wrap:wrap;gap:10px">
+        <div style="flex:1;min-width:120px">
+          <div class="cm-label">Grupos/Tubos</div>
+          <input class="cm-input" id="cm-grupos" type="number" min="1" max="24" value="1" oninput="updateFiberPreview()">
+        </div>
+        <div style="flex:1;min-width:120px">
+          <div class="cm-label">Fibras por grupo</div>
+          <input class="cm-input" id="cm-fpg" type="number" min="1" max="12" value="12" oninput="updateFiberPreview()">
+        </div>
+        <div style="flex:1;min-width:120px">
+          <div class="cm-label">Estilo</div>
+          <select class="cm-input" id="cm-estilo" onchange="updateFiberPreview()">
+            <option value="conv">Convencional</option>
+            <option value="fig8">Figura 8 (autossustentável)</option>
+            <option value="adss">ADSS</option>
+            <option value="drop">Drop indoor</option>
+            <option value="blind">Blindado</option>
+            <option value="diel">Dielétrico</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="cm-section">
+      <div class="cm-label">Cor no mapa</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="color" id="cm-color" value="#1D9E75" style="width:40px;height:40px;border-radius:6px" oninput="updateFiberPreview()">
+        <span style="font-size:12px;color:var(--text2)">Clique para escolher a cor do cabo no mapa</span>
+      </div>
+    </div>
+    <div class="cm-section">
+      <div class="cm-label">Preview das fibras (cores ABNT)</div>
+      <div class="fiber-preview" id="fiber-preview"></div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:4px" id="fp-count"></div>
+    </div>
+  </div>
+  <div class="cm-footer">
+    <button class="cm-btn" onclick="closeCableModal()">Cancelar</button>
+    <button class="cm-btn primary" onclick="confirmCableModal()">✓ Iniciar traçado do cabo</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ ELEMENT DETAIL MODAL ═══ -->
+<div id="em-overlay">
+<div id="em-modal">
+  <div id="emhdr">
+    <div id="em-icon"></div>
+    <div id="em-ttl"><h2 id="em-h2">Elemento</h2><p id="em-sub">—</p></div>
+    <button id="em-x" onclick="closeEmModal()">✕</button>
+  </div>
+  <div id="em-tabs"></div>
+  <div id="em-body"></div>
+</div>
+</div>
+
+<!-- ═══ CONFIRM ═══ -->
+<div id="conf-overlay">
+<div id="conf-box">
+  <h3 id="conf-ttl">Confirmar</h3>
+  <p id="conf-msg">Tem certeza?</p>
+  <div id="conf-btns">
+    <button class="cfb" onclick="confCancel()">Cancelar</button>
+    <button class="cfb ok" id="conf-ok" onclick="confOk()">Confirmar</button>
+  </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ════════════════════════════════════════
+// ABNT NBR 14772 — CORES NACIONAIS
+// ════════════════════════════════════════
+const ABNT=[
+  {name:'Azul',     hex:'#1565C0',tx:'#fff'},
+  {name:'Laranja',  hex:'#E65100',tx:'#fff'},
+  {name:'Verde',    hex:'#2E7D32',tx:'#fff'},
+  {name:'Marrom',   hex:'#5D4037',tx:'#fff'},
+  {name:'Cinza',    hex:'#757575',tx:'#fff'},
+  {name:'Branco',   hex:'#F5F5F5',tx:'#222'},
+  {name:'Vermelho', hex:'#C62828',tx:'#fff'},
+  {name:'Preto',    hex:'#212121',tx:'#fff'},
+  {name:'Amarelo',  hex:'#F9A825',tx:'#222'},
+  {name:'Violeta',  hex:'#6A1B9A',tx:'#fff'},
+  {name:'Rosa',     hex:'#E91E8C',tx:'#fff'},
+  {name:'Aqua',     hex:'#00838F',tx:'#fff'},
+];
+
+function abntColor(globalIdx){
+  const ti=Math.floor(globalIdx/12)%12;
+  const fi=globalIdx%12;
+  return{fiber:ABNT[fi],tube:ABNT[ti],tubeN:Math.floor(globalIdx/12)+1,fiberN:fi+1,global:globalIdx+1};
+}
+
+// ════════════════════════════════════════
+// CABLE TYPE CATALOGUE
+// ════════════════════════════════════════
+const CABLE_TYPES=[
+  {id:'fo-2',   name:'2 FO',    grupos:1,fpg:2,   estilo:'conv', color:'#F59E0B', desc:'Drop / 2 fibras'},
+  {id:'fo-4',   name:'4 FO',    grupos:1,fpg:4,   estilo:'conv', color:'#06B6D4', desc:'Drop / 4 fibras'},
+  {id:'fo-6',   name:'6 FO',    grupos:1,fpg:6,   estilo:'conv', color:'#10B981', desc:'Cabo 6 FO'},
+  {id:'fo-12',  name:'12 FO',   grupos:1,fpg:12,  estilo:'conv', color:'#1D9E75', desc:'Padrão FTTH'},
+  {id:'fo-24',  name:'24 FO',   grupos:2,fpg:12,  estilo:'conv', color:'#8B5CF6', desc:'2 tubos × 12'},
+  {id:'fo-36',  name:'36 FO',   grupos:3,fpg:12,  estilo:'conv', color:'#3B82F6', desc:'3 tubos × 12'},
+  {id:'fo-48',  name:'48 FO',   grupos:4,fpg:12,  estilo:'conv', color:'#EF4444', desc:'4 tubos × 12'},
+  {id:'fo-72',  name:'72 FO',   grupos:6,fpg:12,  estilo:'conv', color:'#F97316', desc:'6 tubos × 12'},
+  {id:'fo-96',  name:'96 FO',   grupos:8,fpg:12,  estilo:'conv', color:'#06B6D4', desc:'8 tubos × 12'},
+  {id:'fo-144', name:'144 FO',  grupos:12,fpg:12, estilo:'conv', color:'#EC4899', desc:'12 tubos × 12'},
+  {id:'fig8-8', name:'Fig8 8FO',grupos:1,fpg:8,   estilo:'fig8', color:'#78716C', desc:'Autossustentável'},
+  {id:'fig8-12',name:'Fig8 12FO',grupos:1,fpg:12, estilo:'fig8', color:'#57534E', desc:'Autossustentável'},
+  {id:'adss-24',name:'ADSS 24', grupos:2,fpg:12,  estilo:'adss', color:'#D97706', desc:'Dielétrico aéreo'},
+  {id:'adss-48',name:'ADSS 48', grupos:4,fpg:12,  estilo:'adss', color:'#B45309', desc:'Dielétrico aéreo'},
+  {id:'drop-in',name:'Drop In', grupos:1,fpg:2,   estilo:'drop', color:'#6EE7B7', desc:'Indoor / 2 FO'},
+  {id:'custom', name:'Custom',  grupos:1,fpg:12,  estilo:'conv', color:'#A78BFA', desc:'Personalizado'},
+];
+
+// ════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════
+let map, mode='select';
+let postes=[],ctos=[],ceos=[],cabos=[],connections=[];
+let drawingCabo=false,caboPoints=[],caboPolyline=null,tempDots=[];
+let pendingCable=null; // cable config waiting for drawing
+let connFirst=null,selectedElem=null;
+let pcnt=0,ctocnt=0,ceocnt=0,cabocnt=0;
+let confCb=null,confCancelCb=null;
+let currentEM=null;
+let fiberMode='drag',fiberDragState=null;
+
+// ════════════════════════════════════════
+// MAP INIT
+// ════════════════════════════════════════
+function initMap(){
+  map=L.map('map',{zoomControl:false,doubleClickZoom:false}).setView([-15.9,-52.22],13);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom:21,
+    crossOrigin:true
+  }).addTo(map);
+  map.on('tileerror',function(){
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/voyager/{z}/{x}/{y}{r}.png',{
+      attribution:'© CartoDB',maxZoom:21,crossOrigin:true
+    }).addTo(map);
+  });
+  map.on('click',onMapClick);
+  map.on('dblclick',onMapDblClick);
+  map.on('mousemove',e=>{
+    document.getElementById('sblat').textContent=e.latlng.lat.toFixed(5);
+    document.getElementById('sblng').textContent=e.latlng.lng.toFixed(5);
+    if(drawingCabo&&caboPoints.length>0){
+      const pts=[...caboPoints,[e.latlng.lat,e.latlng.lng]];
+      if(caboPolyline)map.removeLayer(caboPolyline);
+      caboPolyline=L.polyline(pts,{color:pendingCable?pendingCable.color:'#1D9E75',weight:3,opacity:.7,dashArray:'6,4'}).addTo(map);
+    }
+  });
+  map.on('zoomend',()=>document.getElementById('sbz').textContent=map.getZoom());
+}
+
+// ════════════════════════════════════════
+// MODE
+// ════════════════════════════════════════
+function setMode(m){
+  if(drawingCabo&&m!=='cabo')cancelCabo();
+  if(connFirst&&m!=='conn')resetConnFirst();
+  mode=m;
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('act'));
+  const b=document.getElementById('btn-'+m);if(b)b.classList.add('act');
+  const LBL={select:'Selecionar',poste:'Adicionar Poste',cto:'Adicionar CTO',ceo:'Adicionar CEO',
+    cabo:'Cabo — clique para abrir configuração',conn:'Conectar — 1º elemento → 2º elemento'};
+  document.getElementById('sbm').textContent=LBL[m]||m;
+  // In cabo mode, show cable modal immediately
+  if(m==='cabo')openCableModal();
+}
+
+// ════════════════════════════════════════
+// CABLE MODAL
+// ════════════════════════════════════════
+function buildCableTypeGrid(){
+  const grid=document.getElementById('cable-type-grid');
+  grid.innerHTML=CABLE_TYPES.map(ct=>`
+    <div class="ctb" data-id="${ct.id}" onclick="selectCableType('${ct.id}')">
+      <div class="ctb-name" style="color:${ct.color}">${ct.name}</div>
+      <div class="ctb-desc">${ct.desc}</div>
+    </div>`).join('');
+  // pre-select first
+  selectCableType('fo-12');
+}
+
+let selectedCableTypeId='fo-12';
+function selectCableType(id){
+  selectedCableTypeId=id;
+  document.querySelectorAll('.ctb').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
+  const ct=CABLE_TYPES.find(c=>c.id===id);
+  if(ct&&ct.id!=='custom'){
+    document.getElementById('cm-grupos').value=ct.grupos;
+    document.getElementById('cm-fpg').value=ct.fpg;
+    document.getElementById('cm-estilo').value=ct.estilo;
+    document.getElementById('cm-color').value=ct.color;
+    // auto-fill ID if empty
+    const idEl=document.getElementById('cm-id');
+    if(!idEl.value){cabocnt++;idEl.value=`Cabo-${String(cabocnt).padStart(2,'0')}`;cabocnt--;}
+  }
+  updateFiberPreview();
+}
+
+function updateFiberPreview(){
+  const grupos=parseInt(document.getElementById('cm-grupos').value)||1;
+  const fpg=parseInt(document.getElementById('cm-fpg').value)||12;
+  const total=grupos*fpg;
+  const color=document.getElementById('cm-color').value;
+  const prev=document.getElementById('fiber-preview');
+  let h='';
+  for(let i=0;i<Math.min(total,144);i++){
+    const a=abntColor(i);
+    h+=`<div class="fp-dot" style="background:${a.fiber.hex};border-color:${a.tube.hex};" title="T${a.tubeN} F${a.fiberN} — ${a.fiber.name}"></div>`;
+  }
+  if(total>144)h+=`<span style="font-size:10px;color:var(--text3);font-family:var(--mono);align-self:center">+${total-144} mais...</span>`;
+  prev.innerHTML=h;
+  document.getElementById('fp-count').textContent=`${grupos} tubo${grupos>1?'s':''} × ${fpg} fibras = ${total} FO total`;
+  // update cable legend
+  updateCableLegend(color,total);
+}
+
+function updateCableLegend(color,total){
+  // just a helper, not critical
+}
+
+function openCableModal(){
+  if(!document.getElementById('cable-type-grid').children.length)buildCableTypeGrid();
+  else updateFiberPreview();
+  document.getElementById('cable-overlay').classList.add('show');
+}
+
+function closeCableModal(){
+  document.getElementById('cable-overlay').classList.remove('show');
+  if(mode==='cabo'){setMode('select');}
+}
+
+function confirmCableModal(){
+  const grupos=parseInt(document.getElementById('cm-grupos').value)||1;
+  const fpg=parseInt(document.getElementById('cm-fpg').value)||12;
+  const estilo=document.getElementById('cm-estilo').value;
+  const color=document.getElementById('cm-color').value;
+  let idVal=document.getElementById('cm-id').value.trim();
+  if(!idVal){cabocnt++;idVal=`Cabo-${String(cabocnt).padStart(2,'0')}`;}
+  const ct=CABLE_TYPES.find(c=>c.id===selectedCableTypeId)||CABLE_TYPES[0];
+
+  pendingCable={
+    id:idVal, grupos, fpg, total:grupos*fpg,
+    estilo, color, typeId:selectedCableTypeId,
+    typeName:ct.name, anchors:[]
+  };
+
+  document.getElementById('cable-overlay').classList.remove('show');
+  drawingCabo=true;caboPoints=[];
+  document.getElementById('sbm').textContent=`Traçando ${idVal} (${grupos*fpg} FO) — clique postes para ancorar ou mapa para ponto livre • Enter=finalizar • Esc=cancelar`;
+  // Highlight postes for anchoring
+  highlightPostesForAnchoring(true);
+}
+
+// ════════════════════════════════════════
+// POSTE ANCHOR HIGHLIGHTING
+// ════════════════════════════════════════
+function highlightPostesForAnchoring(on){
+  postes.forEach(p=>{
+    const el=p.marker.getElement();
+    if(el)el.style.filter=on?'drop-shadow(0 0 8px #1D9E75) brightness(1.3)':'';
+    if(on){
+      p._anchorHandler=function(e){
+        L.DomEvent.stopPropagation(e);
+        anchorCaboToPoste(p);
+      };
+      p.marker.on('click',p._anchorHandler);
+    }else{
+      if(p._anchorHandler){p.marker.off('click',p._anchorHandler);p._anchorHandler=null;}
+    }
+  });
+}
+
+function anchorCaboToPoste(p){
+  if(!drawingCabo||!pendingCable)return;
+  caboPoints.push([p.lat,p.lng]);
+  pendingCable.anchors.push(p.id);
+  // visual dot on poste
+  const dot=L.circleMarker([p.lat,p.lng],{radius:5,color:'#1D9E75',fillColor:'#fff',fillOpacity:1,weight:2}).addTo(map);
+  tempDots.push(dot);
+  document.getElementById('sbm').textContent=`${pendingCable.id} — ${caboPoints.length} pontos (${pendingCable.anchors.length} postes ancorados) • Enter=finalizar`;
+}
+
+// ════════════════════════════════════════
+// MAP EVENTS
+// ════════════════════════════════════════
+function onMapClick(e){
+  if(mode==='select')return;
+  const{lat,lng}=e.latlng;
+  if(mode==='poste')addPoste(lat,lng);
+  else if(mode==='cto')addCTO(lat,lng);
+  else if(mode==='ceo')addCEO(lat,lng);
+  else if(mode==='cabo'&&drawingCabo){
+    // free point (not on a poste)
+    caboPoints.push([lat,lng]);
+    const dot=L.circleMarker([lat,lng],{radius:3,color:pendingCable?pendingCable.color:'#1D9E75',fillOpacity:1,weight:1}).addTo(map);
+    tempDots.push(dot);
+  }
+}
+
+function onMapDblClick(e){
+  if(mode==='cabo'&&drawingCabo&&caboPoints.length>=2)finishCabo();
+}
+
+// ════════════════════════════════════════
+// ICONS
+// ════════════════════════════════════════
+function mkIcon(tipo,label){
+  const C={poste:{bg:'#1e3a5f',bd:'#3B82F6',tx:'#60A5FA'},cto:{bg:'#3d2a0a',bd:'#F59E0B',tx:'#FCD34D'},ceo:{bg:'#3d1212',bd:'#EF4444',tx:'#FCA5A5'}};
+  const c=C[tipo]||{bg:'#222',bd:'#888',tx:'#aaa'};
+  const sz=tipo==='poste'?28:34,fs=label&&label.length>6?7:9,rx=tipo==='ceo'?'5px':'50%';
+  return L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:${rx};background:${c.bg};border:2px solid ${c.bd};display:flex;align-items:center;justify-content:center;color:${c.tx};font-size:${fs}px;font-weight:700;font-family:'JetBrains Mono',monospace;box-shadow:0 0 8px rgba(0,0,0,.6)">${label||'?'}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-sz/2]});
+}
+
+// ════════════════════════════════════════
+// ADD ELEMENTS
+// ════════════════════════════════════════
+function addPoste(lat,lng,opts={}){
+  pcnt++;const num=opts.num||pcnt,id='P'+num;
+  const d={id,num,lat,lng,tipo:'poste',nome:opts.nome||`Poste ${num}`,obs:opts.obs||''};
+  const mk=L.marker([lat,lng],{icon:mkIcon('poste',id),draggable:true}).addTo(map);
+  d.marker=mk;postes.push(d);
+  mk.on('click',e=>{L.DomEvent.stopPropagation(e);handleElemClick(d);});
+  mk.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(d);});
+  mk.on('dragstart',()=>{d._pLat=d.lat;d._pLng=d.lng;});
+  mk.on('dragend',()=>confirmMove(d));
+  updStats();updList();return d;
+}
+
+function addCTO(lat,lng,opts={}){
+  ctocnt++;const num=opts.num||ctocnt,id='CTO-'+String(num).padStart(2,'0');
+  const d={id,num,lat,lng,tipo:'cto',nome:opts.nome||id,portas:opts.portas||8,obs:opts.obs||'',fibers:{connections:[],splitters:[]}};
+  const mk=L.marker([lat,lng],{icon:mkIcon('cto',id),draggable:true}).addTo(map);
+  d.marker=mk;ctos.push(d);
+  mk.on('click',e=>{L.DomEvent.stopPropagation(e);handleElemClick(d);});
+  mk.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(d);});
+  mk.on('dragstart',()=>{d._pLat=d.lat;d._pLng=d.lng;});
+  mk.on('dragend',()=>confirmMove(d));
+  updStats();updList();return d;
+}
+
+function addCEO(lat,lng,opts={}){
+  ceocnt++;const num=opts.num||ceocnt,id='CEO-'+String(num).padStart(2,'0');
+  const d={id,num,lat,lng,tipo:'ceo',nome:opts.nome||id,bandejas:opts.bandejas||12,obs:opts.obs||'',fibers:{connections:[],splitters:[]}};
+  const mk=L.marker([lat,lng],{icon:mkIcon('ceo',id),draggable:true}).addTo(map);
+  d.marker=mk;ceos.push(d);
+  mk.on('click',e=>{L.DomEvent.stopPropagation(e);handleElemClick(d);});
+  mk.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(d);});
+  mk.on('dragstart',()=>{d._pLat=d.lat;d._pLng=d.lng;});
+  mk.on('dragend',()=>confirmMove(d));
+  updStats();updList();return d;
+}
+
+// ════════════════════════════════════════
+// CONFIRM MOVE
+// ════════════════════════════════════════
+function confirmMove(d){
+  const pos=d.marker.getLatLng();
+  const nl=pos.lat,ng=pos.lng;
+  showConf('Mover elemento?',`Confirma o novo posicionamento de <strong>${d.id}</strong>?`,
+    ()=>{
+      d.lat=nl;d.lng=ng;
+      // update anchored cables
+      updateAnchoredCabos(d);
+      updateConnLines();updStats();
+    },
+    ()=>d.marker.setLatLng([d._pLat,d._pLng]),
+    'gn'
+  );
+}
+
+// ════════════════════════════════════════
+// ANCHORED CABLE UPDATE
+// ════════════════════════════════════════
+function updateAnchoredCabos(poste){
+  cabos.forEach(c=>{
+    if(!c.anchors||!c.anchors.length)return;
+    let changed=false;
+    c.points.forEach((pt,i)=>{
+      if(c.anchorMap&&c.anchorMap[i]===poste.id){
+        c.points[i]=[poste.lat,poste.lng];changed=true;
+      }
+    });
+    if(changed)c.poly.setLatLngs(c.points);
+  });
+}
+
+// ════════════════════════════════════════
+// CABO FINISH
+// ════════════════════════════════════════
+function finishCabo(){
+  if(!pendingCable||caboPoints.length<2){cancelCabo();return;}
+  cabocnt++;
+  // Build anchorMap: maps point index → poste id
+  const anchorMap={};
+  if(pendingCable.anchors&&pendingCable.anchors.length){
+    caboPoints.forEach((pt,i)=>{
+      postes.forEach(p=>{
+        if(Math.abs(p.lat-pt[0])<0.000001&&Math.abs(p.lng-pt[1])<0.000001){
+          anchorMap[i]=p.id;
+        }
+      });
+    });
+  }
+
+  const d={
+    id:pendingCable.id,tipo:'cabo',
+    points:[...caboPoints],
+    grupos:pendingCable.grupos,fpg:pendingCable.fpg,
+    total:pendingCable.total,
+    estilo:pendingCable.estilo,
+    color:pendingCable.color,
+    typeId:pendingCable.typeId,
+    typeName:pendingCable.typeName,
+    dist:calcDist(caboPoints),
+    nome:pendingCable.id,obs:'',
+    anchors:[...pendingCable.anchors],
+    anchorMap,
+    fibers:{connections:[],splitters:[]}
+  };
+
+  if(caboPolyline)map.removeLayer(caboPolyline);
+  const poly=L.polyline(caboPoints,{color:d.color,weight:4,opacity:.9}).addTo(map);
+  d.poly=poly;cabos.push(d);
+
+  poly.on('click',e=>{L.DomEvent.stopPropagation(e);selectedElem=d;});
+  poly.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(d);});
+
+  cleanupCabo();
+  updStats();updList();updCableLegend();
+}
+
+function cancelCabo(){cleanupCabo();if(mode==='cabo')setMode('select');}
+
+function cleanupCabo(){
+  highlightPostesForAnchoring(false);
+  tempDots.forEach(d=>map.removeLayer(d));tempDots=[];
+  if(caboPolyline){map.removeLayer(caboPolyline);caboPolyline=null;}
+  caboPoints=[];drawingCabo=false;pendingCable=null;
+}
+
+function calcDist(pts){
+  let d=0;for(let i=1;i<pts.length;i++)d+=L.latLng(pts[i-1]).distanceTo(L.latLng(pts[i]));return Math.round(d);
+}
+
+// ════════════════════════════════════════
+// ELEM CLICK / CONNECT
+// ════════════════════════════════════════
+function handleElemClick(d){
+  selectedElem=d;
+  hlElem(d);
+  if(mode==='conn'){
+    if(!connFirst){
+      connFirst=d;
+      const el=d.marker.getElement();if(el)el.style.filter='drop-shadow(0 0 8px #1D9E75)';
+      document.getElementById('sbm').textContent=`Conectar — 2º elemento (origem: ${d.id})`;
+    }else{
+      if(connFirst.id===d.id){resetConnFirst();return;}
+      addConn(connFirst,d);resetConnFirst();
+    }
+  }
+}
+
+function hlElem(d){
+  document.querySelectorAll('.ei').forEach(e=>e.classList.remove('sel'));
+  const el=document.querySelector(`.ei[data-id="${d.id}"]`);if(el)el.classList.add('sel');
+}
+
+function resetConnFirst(){
+  if(connFirst){const el=connFirst.marker&&connFirst.marker.getElement();if(el)el.style.filter='';}
+  connFirst=null;
+}
+
+function addConn(a,b){
+  if(connections.find(c=>(c.a.id===a.id&&c.b.id===b.id)||(c.a.id===b.id&&c.b.id===a.id))){alert('Conexão já existe.');return;}
+  const line=L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:'#8b949e',weight:1.5,dashArray:'6,4',opacity:.7}).addTo(map);
+  connections.push({a,b,line});updStats();updList();
+}
+
+function updateConnLines(){connections.forEach(c=>c.line.setLatLngs([[c.a.lat,c.a.lng],[c.b.lat,c.b.lng]]]);}
+
+// ════════════════════════════════════════
+// REMOVE
+// ════════════════════════════════════════
+function askRemove(d){
+  showConf('Remover elemento?',`Remove <strong>${d.nome||d.id}</strong> e todas as conexões associadas.`,()=>doRemove(d),null,'red');
+}
+
+function doRemove(d){
+  const toRm=connections.filter(c=>c.a.id===d.id||c.b.id===d.id);
+  toRm.forEach(c=>map.removeLayer(c.line));
+  connections=connections.filter(c=>c.a.id!==d.id&&c.b.id!==d.id);
+  if(d.tipo==='poste'){const i=postes.findIndex(p=>p.id===d.id);if(i>=0){map.removeLayer(postes[i].marker);postes.splice(i,1);}}
+  else if(d.tipo==='cto'){const i=ctos.findIndex(p=>p.id===d.id);if(i>=0){map.removeLayer(ctos[i].marker);ctos.splice(i,1);}}
+  else if(d.tipo==='ceo'){const i=ceos.findIndex(p=>p.id===d.id);if(i>=0){map.removeLayer(ceos[i].marker);ceos.splice(i,1);}}
+  else if(d.tipo==='cabo'){const i=cabos.findIndex(p=>p.id===d.id);if(i>=0){map.removeLayer(cabos[i].poly);cabos.splice(i,1);}}
+  if(selectedElem&&selectedElem.id===d.id)selectedElem=null;
+  updStats();updList();updCableLegend();closeEmModal();
+}
+
+// ════════════════════════════════════════
+// CABLES NEAR ELEMENT
+// ════════════════════════════════════════
+function cablesNear(d,r=60){
+  const pt=L.latLng(d.lat,d.lng);
+  return cabos.filter(c=>c.points.some(p=>pt.distanceTo(L.latLng(p[0],p[1]))<=r));
+}
+
+function cableDir(d,c){
+  const pt=L.latLng(d.lat,d.lng);
+  const s=L.latLng(c.points[0]),e=L.latLng(c.points[c.points.length-1]);
+  return s.distanceTo(pt)<e.distanceTo(pt)?'saída':'entrada';
+}
+
+// ════════════════════════════════════════
+// ATTENUATION
+// ════════════════════════════════════════
+const ATT={fibra:.35,conector:.5,emenda:.1,budget:28};
+
+function calcAtt(c){
+  const dk=c.dist/1000;
+  const af=dk*ATT.fibra;
+  const ec=countNear(c.points,ceos,30);
+  const tot=af+ec*ATT.emenda+ATT.conector*2;
+  return{af,ec,tot,margin:ATT.budget-tot};
+}
+
+function countNear(pts,elems,r){
+  let n=0;
+  elems.forEach(el=>{
+    const p=L.latLng(el.lat,el.lng);
+    for(let i=1;i<pts.length;i++){
+      const a=L.latLng(pts[i-1]),b=L.latLng(pts[i]);
+      const dx=b.lng-a.lng,dy=b.lat-a.lat,d2=dx*dx+dy*dy;
+      const t=d2?Math.max(0,Math.min(1,((p.lng-a.lng)*dx+(p.lat-a.lat)*dy)/d2)):0;
+      if(p.distanceTo(L.latLng(a.lat+t*dy,a.lng+t*dx))<=r){n++;break;}
+    }
+  });return n;
+}
+
+// ════════════════════════════════════════
+// CABLE LEGEND (left panel)
+// ════════════════════════════════════════
+function updCableLegend(){
+  const el=document.getElementById('cable-legend');
+  if(!cabos.length){el.innerHTML='';return;}
+  el.innerHTML=cabos.map(c=>`<div class="li"><div class="ll" style="background:${c.color}"></div><span style="font-size:11px;font-family:var(--mono)">${c.id} <span style="color:var(--text3)">${c.total}FO</span></span></div>`).join('');
+}
+
+// ════════════════════════════════════════
+// ELEMENT MODAL
+// ════════════════════════════════════════
+function openEmModal(d){
+  currentEM=d;
+  const ov=document.getElementById('em-overlay');ov.classList.add('show');
+  const CFG={poste:{bg:'#1e3a5f',bd:'#3B82F6',tx:'#60A5FA'},cto:{bg:'#3d2a0a',bd:'#F59E0B',tx:'#FCD34D'},ceo:{bg:'#3d1212',bd:'#EF4444',tx:'#FCA5A5'},cabo:{bg:'#1a2a1a',bd:d.color||'#1D9E75',tx:d.color||'#1D9E75'}};
+  const c=CFG[d.tipo]||CFG.poste;
+  const ic=document.getElementById('em-icon');
+  ic.style.cssText=`background:${c.bg};border:2px solid ${c.bd};color:${c.tx}`;
+  ic.textContent=d.tipo==='cabo'?'⌇':d.id;
+  document.getElementById('em-h2').textContent=d.nome||d.id;
+  document.getElementById('em-sub').textContent=d.tipo.toUpperCase()+' · '+d.id+(d.tipo==='cabo'?` · ${d.total||d.grupos*d.fpg||'?'} FO`:'');
+
+  const tabs=document.getElementById('em-tabs');
+  const body=document.getElementById('em-body');
+  const defs=buildEmTabs(d);
+  tabs.innerHTML=defs.map((t,i)=>`<div class="em-tab${i===0?' act':''}" onclick="switchEmTab(${i})">${t.label}</div>`).join('');
+  body.innerHTML=defs.map((t,i)=>`<div class="etc${i===0?' act':''}" id="etc-${i}">${t.html}</div>`).join('');
+  if(d.tipo==='ceo'||d.tipo==='cto')setTimeout(()=>initFiberDiag(d),80);
+}
+
+function buildEmTabs(d){
+  const tabs=[];
+  const near=d.tipo!=='cabo'?cablesNear(d):[];
+
+  // TAB: PROPS
+  let ph=`<div class="prs"><div class="prt">Identificação</div>
+    <div class="prr"><span>ID</span><span class="pv">${d.id}</span></div>
+    <div class="prr"><span>Nome</span><input class="pin" id="pi-nome" value="${d.nome||''}"></div>
+    <div class="prr"><span>Obs.</span><input class="pin" id="pi-obs" value="${d.obs||''}"></div>`;
+  if(d.tipo==='poste')ph+=`<div class="prr"><span>Nº</span><span class="pv">${d.num}</span></div><div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div><div class="prr"><span>Lng</span><span class="pv">${d.lng.toFixed(6)}</span></div>`;
+  if(d.tipo==='cto')ph+=`<div class="prr"><span>Portas</span><input class="pin" id="pi-portas" type="number" value="${d.portas||8}"></div><div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div>`;
+  if(d.tipo==='ceo')ph+=`<div class="prr"><span>Bandejas</span><input class="pin" id="pi-bandejas" type="number" value="${d.bandejas||12}"></div><div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div>`;
+  if(d.tipo==='cabo'){
+    const ESTILO={conv:'Convencional',fig8:'Figura 8',adss:'ADSS',drop:'Drop Indoor',blind:'Blindado',diel:'Dielétrico'};
+    ph+=`<div class="prr"><span>Tipo</span><span class="pv">${d.typeName||d.typeId||'—'}</span></div>
+      <div class="prr"><span>Estrutura</span><span class="pv">${d.grupos||1} tubos × ${d.fpg||12} FO = ${d.total||d.grupos*d.fpg} FO</span></div>
+      <div class="prr"><span>Estilo</span><span class="pv">${ESTILO[d.estilo]||d.estilo||'—'}</span></div>
+      <div class="prr"><span>Comprimento</span><span class="pv green">${d.dist>=1000?(d.dist/1000).toFixed(3)+' km':d.dist+' m'}</span></div>
+      <div class="prr"><span>Postes ancorados</span><span class="pv">${(d.anchors||[]).join(', ')||'nenhum'}</span></div>`;
+    // Fiber dots preview
+    ph+=`<div class="prt" style="margin-top:12px">Fibras (cores ABNT)</div><div class="fiber-preview" style="max-height:80px;overflow-y:auto">`;
+    for(let i=0;i<Math.min(d.total||12,144);i++){const a=abntColor(i);ph+=`<div class="fp-dot" style="background:${a.fiber.hex};border-color:${a.tube.hex}" title="T${a.tubeN} F${a.fiberN} — ${a.fiber.name}"></div>`;}
+    ph+=`</div>`;
+  }
+  ph+=`</div>`;
+  if(d.tipo!=='cabo'){
+    ph+=`<div class="prs"><div class="prt">Adicionar nas proximidades</div><div class="qag">
+      <div class="qab" onclick="quickAdd('cto',currentEM)"><div class="qai" style="background:#3d2a0a;border:2px solid #F59E0B;color:#FCD34D">CTO</div><span class="qal">Nova CTO</span></div>
+      <div class="qab" onclick="quickAdd('ceo',currentEM)"><div class="qai" style="background:#3d1212;border:2px solid #EF4444;color:#FCA5A5">CEO</div><span class="qal">Nova CEO</span></div>
+      <div class="qab" onclick="quickAdd('deriv',currentEM)"><div class="qai" style="background:#1a2433;border:2px solid #8B5CF6;color:#A78BFA">⑂</div><span class="qal">Derivação</span></div>
+    </div></div>`;
+  }
+  ph+=`<div class="pact"><button class="pab gn" onclick="saveProps()">✓ Salvar</button><button class="pab rd" onclick="askRemove(currentEM);closeEmModal()">✕ Remover</button></div>`;
+  tabs.push({label:'Propriedades',html:ph});
+
+  // TAB: CABOS
+  let ch='';
+  if(d.tipo==='cabo'){
+    const att=calcAtt(d);
+    ch=`<div class="ac"><div class="ac-t">${d.id} — ${d.typeName||''}</div><div class="ar"><span>Estrutura</span><span>${d.grupos||1}T × ${d.fpg||12}FO = ${d.total}FO</span></div>
+      <div class="ar"><span>Comprimento</span><span>${d.dist>=1000?(d.dist/1000).toFixed(3)+' km':d.dist+' m'}</span></div>
+      <div class="ar"><span>Att. fibra</span><span>${att.af.toFixed(2)} dB</span></div>
+      <div class="ar"><span>Emendas ×${att.ec}</span><span>${(att.ec*ATT.emenda).toFixed(2)} dB</span></div>
+      <div class="ar"><span>Total</span><span style="font-weight:600">${att.tot.toFixed(2)} dB / ${ATT.budget} dB</span></div>
+      ${att.margin>=5?`<span class="ab ok">OK — ${att.margin.toFixed(1)} dB margem</span>`:att.margin>=0?`<span class="ab wn">Limite — ${att.margin.toFixed(1)} dB</span>`:`<span class="ab bd">EXCEDE ${Math.abs(att.margin).toFixed(1)} dB</span>`}
+    </div>`;
+  }else if(!near.length){
+    ch='<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Nenhum cabo detectado nas proximidades (raio 60m).</div>';
+  }else{
+    near.forEach(c=>{
+      const dir=cableDir(d,c);const att=calcAtt(c);
+      ch+=`<div class="ci"><div class="eid" style="background:${c.color}"></div><div class="ci-info"><div class="ci-name">${c.nome}</div><div class="ci-meta">${c.typeName||c.typeId||''} · ${c.total||'?'} FO · ${c.dist>=1000?(c.dist/1000).toFixed(2)+' km':c.dist+' m'} · ${att.tot.toFixed(1)} dB</div></div><span class="ci-dir ${dir==='entrada'?'ci-in':'ci-out'}">${dir}</span></div>`;
+    });
+  }
+  tabs.push({label:'Cabos',html:ch});
+
+  // TAB: ATENUAÇÃO
+  let ah='';
+  const attSrc=d.tipo==='cabo'?[d]:near;
+  if(!attSrc.length){ah='<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Nenhum dado de atenuação disponível.</div>';}
+  else attSrc.forEach(c=>{const att=calcAtt(c);ah+=`<div class="ac"><div class="ac-t">${c.nome}</div><div class="ar"><span>Distância</span><span>${c.dist>=1000?(c.dist/1000).toFixed(3)+' km':c.dist+' m'}</span></div><div class="ar"><span>Att. fibra (${ATT.fibra} dB/km)</span><span>${att.af.toFixed(2)} dB</span></div><div class="ar"><span>Emendas CEO (×${att.ec})</span><span>${(att.ec*ATT.emenda).toFixed(2)} dB</span></div><div class="ar"><span>Conectores (×2)</span><span>${(ATT.conector*2).toFixed(1)} dB</span></div><div class="ar"><span>Total</span><span style="font-weight:600">${att.tot.toFixed(2)} dB</span></div><div class="ar"><span>Budget</span><span>${ATT.budget} dB</span></div>${att.margin>=5?`<span class="ab ok">OK — ${att.margin.toFixed(1)} dB</span>`:att.margin>=0?`<span class="ab wn">Limite — ${att.margin.toFixed(1)} dB</span>`:`<span class="ab bd">EXCEDE ${Math.abs(att.margin).toFixed(1)} dB</span>`}</div>`;});
+  tabs.push({label:'Atenuação',html:ah});
+
+  // TAB: DIAGRAMA FIBRAS (CTO/CEO only)
+  if(d.tipo==='ceo'||d.tipo==='cto'){
+    const fh=`<div style="position:relative;height:500px;overflow-y:auto;background:#0d1117;border-radius:6px;" id="fcd">
+      <div id="fcd-toolbar">
+        <button class="fcb af" id="fcb-drag" onclick="setFiberMode('drag')">✋ Drag &amp; Drop</button>
+        <button class="fcb" id="fcb-split" onclick="setFiberMode('split')">⑂ Splitter</button>
+        <button class="fcb" onclick="clearFiberDiag(currentEM)" style="color:var(--red)">✕ Limpar</button>
+        <button class="fcb" onclick="exportFiberSVG()">↓ SVG</button>
+        <span id="fc-info" style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:6px">Arraste da fibra de origem até a de destino para conectar.</span>
+      </div>
+      <svg id="fiber-svg" width="100%" style="display:block;min-height:400px;cursor:crosshair"></svg>
+      <div id="fcd-status" style="position:sticky;bottom:0;padding:5px 10px;font-size:10px;color:var(--text3);font-family:var(--mono);background:#0d1117;border-top:1px solid #21262d">Fibras com cores ABNT NBR 14772 · Clique nas conexões para remover</div>
+    </div>`;
+    tabs.push({label:'Diagrama fibras',html:fh});
+  }
+  return tabs;
+}
+
+function switchEmTab(i){
+  document.querySelectorAll('.em-tab').forEach((t,j)=>t.classList.toggle('act',i===j));
+  document.querySelectorAll('.etc').forEach((t,j)=>t.classList.toggle('act',i===j));
+  if(currentEM&&(currentEM.tipo==='ceo'||currentEM.tipo==='cto')){
+    const lbl=document.querySelectorAll('.em-tab')[i]?.textContent||'';
+    if(lbl.includes('Diagrama'))setTimeout(()=>initFiberDiag(currentEM),60);
+  }
+}
+
+function closeEmModal(){document.getElementById('em-overlay').classList.remove('show');currentEM=null;}
+
+function saveProps(){
+  const d=currentEM;if(!d)return;
+  const n=document.getElementById('pi-nome');if(n)d.nome=n.value;
+  const o=document.getElementById('pi-obs');if(o)d.obs=o.value;
+  if(d.tipo==='cto'){const e=document.getElementById('pi-portas');if(e)d.portas=parseInt(e.value)||8;}
+  if(d.tipo==='ceo'){const e=document.getElementById('pi-bandejas');if(e)d.bandejas=parseInt(e.value)||12;}
+  document.getElementById('em-h2').textContent=d.nome||d.id;
+  updList();
+  const btn=event.target;btn.textContent='✓ Salvo!';setTimeout(()=>btn.textContent='✓ Salvar',1500);
+}
+
+function quickAdd(tipo,d){
+  closeEmModal();const off=0.0003;const lat=d.lat+off,lng=d.lng+off;
+  if(tipo==='cto')addCTO(lat,lng);
+  else if(tipo==='ceo')addCEO(lat,lng);
+  else addPoste(lat,lng,{nome:'Derivação '+pcnt});
+  map.setView([lat,lng],17);
+}
+
+// ════════════════════════════════════════
+// FIBER DIAGRAM — DRAG & DROP
+// ════════════════════════════════════════
+function setFiberMode(m){
+  fiberMode=m;fiberDragState=null;
+  document.querySelectorAll('.fcb').forEach(b=>b.classList.remove('af'));
+  const el=document.getElementById('fcb-'+m);if(el)el.classList.add('af');
+  const msgs={drag:'Arraste da fibra de origem até a de destino para conectar.',split:'Clique numa fibra para inserir splitter.'};
+  const fi=document.getElementById('fc-info');if(fi)fi.textContent=msgs[m]||'';
+}
+
+function initFiberDiag(d){
+  const svg=document.getElementById('fiber-svg');
+  if(!svg)return;
+  if(!d.fibers)d.fibers={connections:[],splitters:[]};
+  const W=svg.clientWidth||780;
+  const near=cablesNear(d);
+  renderFiberDiag(d,svg,W,near);
+  bindFiberDragEvents(d,svg);
+}
+
+function renderFiberDiag(d,svg,W,near){
+  const FIBH=24,FIBR=8,COL_W=170,GAP=24,CX_W=120;
+  const incoming=near.filter(c=>cableDir(d,c)==='entrada');
+  const outgoing=near.filter(c=>cableDir(d,c)==='saída');
+  let totalIn=0;incoming.forEach(c=>totalIn+=(c.total||12)+3);
+  let totalOut=0;outgoing.forEach(c=>totalOut+=(c.total||12)+3);
+  const rows=Math.max(totalIn,totalOut,8);
+  const H=Math.max(rows*FIBH+100,350);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('height',H);
+
+  let html=`<defs>
+    <marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0L7,3.5L0,7Z" fill="#1D9E75"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="selglow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>`;
+
+  // Center box
+  const CY=H/2,bx=W/2-CX_W/2,bH=Math.max(80,Math.min(rows*FIBH*.6,H-60));
+  const by=CY-bH/2;
+  const ec=d.tipo==='ceo',ecolor=ec?'#EF4444':'#F59E0B',ebg=ec?'#3d1212':'#3d2a0a',etx=ec?'#FCA5A5':'#FCD34D';
+  html+=`<rect x="${bx}" y="${by}" width="${CX_W}" height="${bH}" rx="8" fill="${ebg}" stroke="${ecolor}" stroke-width="2"/>
+    <text x="${W/2}" y="${by+22}" text-anchor="middle" fill="${etx}" font-size="12" font-weight="700" font-family="JetBrains Mono">${d.id}</text>
+    <text x="${W/2}" y="${by+37}" text-anchor="middle" fill="#8b949e" font-size="9" font-family="JetBrains Mono">${d.tipo.toUpperCase()}</text>
+    <text x="${W/2}" y="${by+52}" text-anchor="middle" fill="${etx}" font-size="9" font-family="JetBrains Mono">${ec?d.bandejas+' bandejas':d.portas+' portas'}</text>`;
+
+  // Draw fibers for one side
+  function drawCol(cables,side){
+    const xBase=side==='left'?GAP:W-GAP-COL_W;
+    let curY=30;
+    cables.forEach(c=>{
+      const total=c.total||c.grupos*c.fpg||12;
+      // cable header
+      html+=`<rect x="${xBase}" y="${curY}" width="${COL_W}" height="18" rx="4" fill="${c.color}33" stroke="${c.color}" stroke-width="1"/>
+        <text x="${xBase+COL_W/2}" y="${curY+12}" text-anchor="middle" fill="${c.color}" font-size="9" font-weight="700" font-family="JetBrains Mono">${c.id} · ${total}FO</text>`;
+      curY+=20;
+      // group separators
+      let prevTube=-1;
+      for(let fi=0;fi<total;fi++){
+        const a=abntColor(fi);
+        const fy=curY+fi*FIBH;
+        const fibId=`fib_${c.id}_${fi}`;
+        const isConn=d.fibers.connections&&d.fibers.connections.some(fc=>fc.from===fibId||fc.to===fibId);
+        const isDrag=fiberDragState&&fiberDragState.fibId===fibId;
+
+        if(a.tubeN!==prevTube&&fi>0){
+          html+=`<line x1="${xBase}" y1="${fy}" x2="${xBase+COL_W}" y2="${fy}" stroke="${ABNT[a.tubeN-1]?ABNT[(a.tubeN-1)%12].hex:'#333'}" stroke-width="1" opacity=".35" stroke-dasharray="3,2"/>`;
+        }
+        prevTube=a.tubeN;
+
+        // row bg
+        html+=`<rect x="${xBase}" y="${fy}" width="${COL_W}" height="${FIBH-1}" rx="2"
+          fill="${isConn?a.fiber.hex+'22':'transparent'}" stroke="${isConn?a.fiber.hex:'#21262d'}" stroke-width="${isConn?1:.3}"
+          data-fibid="${fibId}" data-fi="${fi}" data-cid="${c.id}" data-side="${side}" data-cy="${fy+FIBH/2}" class="fib-row"
+          style="cursor:grab"/>`;
+
+        // tube ring
+        const cx2=side==='left'?xBase+COL_W-10:xBase+10;
+        const cy2=fy+FIBH/2;
+        html+=`<circle cx="${cx2}" cy="${cy2}" r="${FIBR+2.5}" fill="${ABNT[(a.tubeN-1)%12].hex}" data-fibid="${fibId}" data-fi="${fi}" data-cid="${c.id}" data-side="${side}" data-cy="${cy2}" class="fib-row" style="cursor:grab"/>`;
+        // fiber circle
+        html+=`<circle cx="${cx2}" cy="${cy2}" r="${FIBR}" fill="${a.fiber.hex}"
+          stroke="${isConn||isDrag?'#fff':'rgba(255,255,255,.12)'}" stroke-width="${isConn||isDrag?2:.5}"
+          ${isConn?'filter="url(#glow)"':''}
+          data-fibid="${fibId}" data-fi="${fi}" data-cid="${c.id}" data-side="${side}" data-cy="${cy2}" class="fib-row"
+          style="cursor:grab" id="circ_${fibId}"/>`;
+
+        // label
+        const lx=side==='left'?xBase+8:xBase+COL_W-22;
+        const anch=side==='left'?'start':'end';
+        const tlbl=total>12?`T${a.tubeN}·`:'';
+        html+=`<text x="${lx}" y="${fy+FIBH-4}" text-anchor="${anch}" fill="${a.fiber.name==='Branco'||a.fiber.name==='Amarelo'?'#999':'#c9d1d9'}" font-size="8.5" font-family="JetBrains Mono" pointer-events="none" style="text-shadow:0 0 3px #000">${tlbl}F${a.global} ${a.fiber.name}</text>`;
+      }
+      curY+=total*FIBH+12;
+    });
+  }
+
+  drawCol(incoming,'left');
+  drawCol(outgoing,'right');
+
+  // Draw connections (bezier, colored by source fiber ABNT)
+  if(d.fibers.connections){
+    d.fibers.connections.forEach((fc,i)=>{
+      if(fc.fromX===undefined)return;
+      const a=abntColor(fc.fromFi);
+      html+=`<path id="conn_${i}" d="M${fc.fromX},${fc.fromY} C${W/2},${fc.fromY} ${W/2},${fc.toY} ${fc.toX},${fc.toY}"
+        fill="none" stroke="${a.fiber.hex}" stroke-width="2.2" opacity=".88" marker-end="url(#arr)"
+        class="conn-line" data-idx="${i}" style="cursor:pointer"/>
+        <text x="${W/2}" y="${(fc.fromY+fc.toY)/2-2}" text-anchor="middle" fill="${a.fiber.hex}" font-size="7.5" font-family="JetBrains Mono" opacity=".65" pointer-events="none">F${fc.fromFi+1}→F${fc.toFi+1}</text>`;
+    });
+  }
+
+  // Splitters
+  if(d.fibers.splitters){
+    d.fibers.splitters.forEach((sp,i)=>{
+      html+=`<g class="splitter" data-idx="${i}" style="cursor:pointer" onclick="rmSplitter(${i})">
+        <rect x="${sp.x-30}" y="${sp.y-18}" width="60" height="36" rx="6" fill="#1a2433" stroke="#8B5CF6" stroke-width="1.5"/>
+        <text x="${sp.x}" y="${sp.y-4}" text-anchor="middle" fill="#A78BFA" font-size="9" font-weight="700" font-family="JetBrains Mono">SPLITTER</text>
+        <text x="${sp.x}" y="${sp.y+10}" text-anchor="middle" fill="#A78BFA" font-size="9" font-family="JetBrains Mono">1:${sp.ratio||8}</text>
+        <text x="${sp.x+24}" y="${sp.y-8}" fill="#EF4444" font-size="12" font-weight="700">×</text>
+      </g>`;
+    });
+  }
+
+  // ABNT legend
+  const lx=W-52,ly=H-152;
+  html+=`<rect x="${lx-4}" y="${ly-14}" width="52" height="154" rx="4" fill="rgba(13,17,23,.88)" stroke="#30363d" stroke-width=".5"/>
+    <text x="${lx+22}" y="${ly}" text-anchor="middle" fill="#484f58" font-size="7.5" font-weight="600" font-family="JetBrains Mono">ABNT</text>`;
+  ABNT.forEach((f,i)=>{
+    html+=`<circle cx="${lx+5}" cy="${ly+10+i*11}" r="4" fill="${f.hex}" stroke="rgba(255,255,255,.1)" stroke-width=".5"/>
+      <text x="${lx+13}" y="${ly+14+i*11}" fill="#6e7681" font-size="7.5" font-family="JetBrains Mono">${f.name}</text>`;
+  });
+
+  // Drag preview line placeholder
+  html+=`<path id="drag-preview" d="" fill="none" stroke="#fff" stroke-width="1.5" stroke-dasharray="5,3" opacity="0" pointer-events="none"/>`;
+
+  svg.innerHTML=html;
+}
+
+// ── DRAG & DROP fiber connection ──────
+function bindFiberDragEvents(d,svg){
+  if(!svg)return;
+
+  svg.addEventListener('mousedown',e=>{
+    const el=e.target.closest('.fib-row');
+    if(!el)return;
+    e.preventDefault();
+    const fibId=el.dataset.fibid;
+    const fi=parseInt(el.dataset.fi);
+    const cid=el.dataset.cid;
+    const side=el.dataset.side;
+    const cy=parseFloat(el.dataset.cy);
+    const W=svg.clientWidth||780;
+    const COL_W=170,GAP=24;
+    const startX=side==='left'?GAP+COL_W-10:W-GAP-COL_W+10;
+
+    if(fiberMode==='split'){
+      const ratio=prompt('Ratio do splitter (8, 16, 32...):','8');
+      if(!ratio)return;
+      d.fibers.splitters=d.fibers.splitters||[];
+      d.fibers.splitters.push({x:W/2,y:cy,ratio:parseInt(ratio)||8});
+      initFiberDiag(d);return;
+    }
+
+    fiberDragState={fibId,fi,cid,side,cy,startX,dragging:true};
+    const a=abntColor(fi);
+    // Highlight source circle
+    const circ=document.getElementById('circ_'+fibId);
+    if(circ){circ.setAttribute('stroke','#fff');circ.setAttribute('stroke-width','3');circ.setAttribute('filter','url(#selglow)');}
+    const info=document.getElementById('fc-info');
+    if(info)info.textContent=`Arrastando F${fi+1} (${a.fiber.name}) de ${cid} — solte na fibra de destino`;
+  });
+
+  svg.addEventListener('mousemove',e=>{
+    if(!fiberDragState||!fiberDragState.dragging)return;
+    const rect=svg.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)*(svg.viewBox.baseVal.width/rect.width);
+    const my=(e.clientY-rect.top)*(svg.viewBox.baseVal.height/rect.height);
+    const prev=document.getElementById('drag-preview');
+    if(prev){
+      const W=svg.viewBox.baseVal.width||780;
+      const a=abntColor(fiberDragState.fi);
+      prev.setAttribute('d',`M${fiberDragState.startX},${fiberDragState.cy} C${W/2},${fiberDragState.cy} ${W/2},${my} ${mx},${my}`);
+      prev.setAttribute('stroke',a.fiber.hex);
+      prev.setAttribute('opacity','0.7');
+    }
+  });
+
+  svg.addEventListener('mouseup',e=>{
+    if(!fiberDragState||!fiberDragState.dragging)return;
+    const ds=fiberDragState;fiberDragState=null;
+    const prev=document.getElementById('drag-preview');if(prev)prev.setAttribute('opacity','0');
+
+    const target=e.target.closest('.fib-row');
+    if(!target||target.dataset.fibid===ds.fibId){
+      initFiberDiag(d);return;
+    }
+    const toFibId=target.dataset.fibid;
+    const toFi=parseInt(target.dataset.fi);
+    const toCid=target.dataset.cid;
+    const toSide=target.dataset.side;
+    const toCy=parseFloat(target.dataset.cy);
+
+    // prevent same cable
+    if(ds.cid===toCid){alert('Não é possível conectar fibras do mesmo cabo.');initFiberDiag(d);return;}
+    // prevent duplicate
+    if(d.fibers.connections.some(fc=>(fc.from===ds.fibId&&fc.to===toFibId)||(fc.from===toFibId&&fc.to===ds.fibId))){
+      alert('Essas fibras já estão conectadas.');initFiberDiag(d);return;
+    }
+
+    const W=svg.clientWidth||780;const COL_W=170,GAP=24;
+    const fromX=ds.side==='left'?GAP+COL_W-10:W-GAP-COL_W+10;
+    const toX=toSide==='left'?GAP+COL_W-10:W-GAP-COL_W+10;
+
+    d.fibers.connections.push({
+      from:ds.fibId,to:toFibId,
+      fromFi:ds.fi,toFi,
+      fromCable:ds.cid,toCable:toCid,
+      fromX,fromY:ds.cy,toX,toY:toCy
+    });
+    initFiberDiag(d);
+    const info=document.getElementById('fc-info');
+    const a=abntColor(ds.fi);
+    if(info)info.textContent=`✓ F${ds.fi+1} (${a.fiber.name}) → F${toFi+1} conectadas! Continue arrastando.`;
+  });
+
+  svg.addEventListener('mouseleave',()=>{
+    if(fiberDragState&&fiberDragState.dragging){
+      fiberDragState=null;
+      const prev=document.getElementById('drag-preview');if(prev)prev.setAttribute('opacity','0');
+      initFiberDiag(d);
+    }
+  });
+
+  // click on conn-line to remove
+  svg.addEventListener('click',e=>{
+    const cl=e.target.closest('.conn-line');
+    if(!cl)return;
+    const idx=parseInt(cl.dataset.idx);
+    if(isNaN(idx))return;
+    const a=abntColor(d.fibers.connections[idx]?.fromFi||0);
+    showConf('Remover conexão?',`Remove a fusão <strong>F${(d.fibers.connections[idx]?.fromFi||0)+1} (${a.fiber.name})</strong> → <strong>F${(d.fibers.connections[idx]?.toFi||0)+1}</strong>?`,
+      ()=>{d.fibers.connections.splice(idx,1);initFiberDiag(d);},null,'red');
+  });
+}
+
+function rmSplitter(idx){
+  const d=currentEM;if(!d)return;
+  showConf('Remover splitter?','Remove este splitter do diagrama.',()=>{d.fibers.splitters.splice(idx,1);initFiberDiag(d);},null,'red');
+}
+
+function clearFiberDiag(d){
+  if(!d)return;
+  showConf('Limpar diagrama?','Remove todas as conexões e splitters.',()=>{d.fibers={connections:[],splitters:[]};initFiberDiag(d);},null,'red');
+}
+
+function exportFiberSVG(){
+  const svg=document.getElementById('fiber-svg');if(!svg)return;
+  const s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${svg.getAttribute('viewBox')}" style="background:#0d1117">${svg.innerHTML}</svg>`;
+  const blob=new Blob([s],{type:'image/svg+xml'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='diagrama_fibras.svg';a.click();
+}
+
+// ════════════════════════════════════════
+// STATS & LIST
+// ════════════════════════════════════════
+function updStats(){
+  document.getElementById('cnt-p').textContent=postes.length;
+  document.getElementById('cnt-t').textContent=ctos.length;
+  document.getElementById('cnt-e').textContent=ceos.length;
+  document.getElementById('cnt-c').textContent=cabos.length;
+  const tot=cabos.reduce((s,c)=>s+c.dist,0);
+  document.getElementById('cnt-m').textContent=tot>=1000?(tot/1000).toFixed(3)+' km':tot+' m';
+}
+
+function updList(){
+  const el=document.getElementById('elist');
+  const C={poste:'#3B82F6',cto:'#F59E0B',ceo:'#EF4444'};
+  const all=[...postes,...ctos,...ceos,...cabos];
+  if(!all.length){el.innerHTML='<div style="padding:8px 12px;font-size:11px;color:var(--text3);font-family:var(--mono)">Nenhum elemento.</div>';return;}
+  el.innerHTML=all.map(d=>`<div class="ei" data-id="${d.id}" onclick="zoomTo('${d.id}')" ondblclick="openFromList('${d.id}')">
+    <div class="eid" style="background:${d.tipo==='cabo'?d.color:C[d.tipo]}"></div>
+    <span class="ein">${d.id}${d.tipo==='cabo'?` <span style='color:var(--text3)'>${d.total||''}FO</span>`:''}</span>
+    <span class="eidel" onclick="event.stopPropagation();askRemoveById('${d.id}')">✕</span>
+  </div>`).join('');
+}
+
+function zoomTo(id){const d=findById(id);if(!d)return;if(d.tipo==='cabo')map.fitBounds(d.poly.getBounds(),{padding:[40,40]});else map.setView([d.lat,d.lng],17);selectedElem=d;hlElem(d);}
+function openFromList(id){const d=findById(id);if(d)openEmModal(d);}
+function findById(id){return postes.find(p=>p.id===id)||ctos.find(p=>p.id===id)||ceos.find(p=>p.id===id)||cabos.find(p=>p.id===id);}
+function askRemoveById(id){const d=findById(id);if(d)askRemove(d);}
+
+// ════════════════════════════════════════
+// CONFIRM DIALOG
+// ════════════════════════════════════════
+function showConf(title,msg,ok,cancel,variant='red'){
+  confCb=ok;confCancelCb=cancel;
+  document.getElementById('conf-ttl').textContent=title;
+  document.getElementById('conf-msg').innerHTML=msg;
+  const btn=document.getElementById('conf-ok');
+  btn.className='cfb ok'+(variant==='gn'?' gn':'');
+  btn.textContent=variant==='gn'?'Confirmar':'Confirmar';
+  document.getElementById('conf-overlay').classList.add('show');
+}
+function confOk(){document.getElementById('conf-overlay').classList.remove('show');if(confCb)confCb();confCb=null;confCancelCb=null;}
+function confCancel(){document.getElementById('conf-overlay').classList.remove('show');if(confCancelCb)confCancelCb();confCb=null;confCancelCb=null;}
+
+// ════════════════════════════════════════
+// CLEAR ALL
+// ════════════════════════════════════════
+function askClear(){
+  showConf('Limpar tudo?','Remove todos os elementos, cabos e conexões.',()=>{
+    postes.forEach(p=>map.removeLayer(p.marker));postes=[];
+    ctos.forEach(p=>map.removeLayer(p.marker));ctos=[];
+    ceos.forEach(p=>map.removeLayer(p.marker));ceos=[];
+    cabos.forEach(c=>map.removeLayer(c.poly));cabos=[];
+    connections.forEach(c=>map.removeLayer(c.line));connections=[];
+    cleanupCabo();pcnt=0;ctocnt=0;ceocnt=0;cabocnt=0;selectedElem=null;connFirst=null;
+    updStats();updList();updCableLegend();
+  });
+}
+
+// ════════════════════════════════════════
+// IMPORT KML / KMZ
+// ════════════════════════════════════════
+function loadKML(evt){
+  const file=evt.target.files[0];if(!file)return;evt.target.value='';
+  const isZ=file.name.toLowerCase().endsWith('.kmz');
+  if(isZ){const r=new FileReader();r.onload=async e=>{try{const z=await JSZip.loadAsync(e.target.result);let t=null;for(const n of Object.keys(z.files))if(n.toLowerCase().endsWith('.kml')){t=await z.files[n].async('text');break;}if(!t){alert('Sem KML no KMZ.');return;}parseKML(t);}catch(er){alert('Erro KMZ:\n'+er.message);}};r.readAsArrayBuffer(file);}
+  else{const r=new FileReader();r.onload=e=>parseKML(e.target.result);r.readAsText(file);}
+}
+
+function parseKML(txt){
+  try{
+    const xml=new DOMParser().parseFromString(txt,'text/xml');
+    const pms=xml.querySelectorAll('Placemark');let cnt=0;const bounds=[];
+    pms.forEach(pm=>{
+      const coords=pm.querySelector('coordinates');
+      const name=(pm.querySelector('name')||{}).textContent||'';
+      if(!coords)return;
+      const parts=coords.textContent.trim().split(/\s+/).filter(Boolean);
+      if(parts.length===1){
+        const[lng,lat]=parts[0].split(',').map(Number);const nl=name.toLowerCase();
+        if(nl.includes('cto'))addCTO(lat,lng,{nome:name});
+        else if(nl.includes('ceo')||nl.includes('emenda'))addCEO(lat,lng,{nome:name});
+        else addPoste(lat,lng,{nome:name});
+        bounds.push([lat,lng]);cnt++;
+      }else if(parts.length>=2){
+        const pts=parts.map(p=>{const c=p.split(',');return[parseFloat(c[1]),parseFloat(c[0])];});
+        let typeId='fo-12';const nl=name.toLowerCase();
+        if(nl.includes('drop'))typeId='drop-in';else if(nl.includes('96'))typeId='fo-96';else if(nl.includes('72'))typeId='fo-72';else if(nl.includes('48'))typeId='fo-48';else if(nl.includes('36'))typeId='fo-36';else if(nl.includes('24'))typeId='fo-24';
+        const ct=CABLE_TYPES.find(c=>c.id===typeId)||CABLE_TYPES[3];
+        cabocnt++;const id='Cabo-'+String(cabocnt).padStart(2,'0');
+        const dist=calcDist(pts);const poly=L.polyline(pts,{color:ct.color,weight:4,opacity:.9}).addTo(map);
+        const dd={id,tipo:'cabo',points:pts,grupos:ct.grupos,fpg:ct.fpg,total:ct.grupos*ct.fpg,estilo:ct.estilo,color:ct.color,typeId,typeName:ct.name,dist,nome:name||id,obs:'',anchors:[],anchorMap:{},fibers:{connections:[],splitters:[]}};
+        dd.poly=poly;cabos.push(dd);
+        poly.on('click',e=>{L.DomEvent.stopPropagation(e);selectedElem=dd;});
+        poly.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(dd);});
+        pts.forEach(p=>bounds.push(p));cnt++;
+      }
+    });
+    if(bounds.length)map.fitBounds(L.latLngBounds(bounds),{padding:[40,40]});
+    updStats();updList();updCableLegend();
+    alert(`Importado! ${cnt} elementos carregados.`);
+  }catch(er){alert('Erro KML:\n'+er.message);}
+}
+
+// ════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════
+function exportGeoJSON(){
+  const f=[];
+  postes.forEach(p=>f.push({type:'Feature',geometry:{type:'Point',coordinates:[p.lng,p.lat]},properties:{tipo:'poste',id:p.id,num:p.num,nome:p.nome}}));
+  ctos.forEach(p=>f.push({type:'Feature',geometry:{type:'Point',coordinates:[p.lng,p.lat]},properties:{tipo:'cto',id:p.id,nome:p.nome,portas:p.portas}}));
+  ceos.forEach(p=>f.push({type:'Feature',geometry:{type:'Point',coordinates:[p.lng,p.lat]},properties:{tipo:'ceo',id:p.id,nome:p.nome,bandejas:p.bandejas}}));
+  cabos.forEach(c=>f.push({type:'Feature',geometry:{type:'LineString',coordinates:c.points.map(p=>[p[1],p[0]])},properties:{tipo:'cabo',id:c.id,typeId:c.typeId,typeName:c.typeName,total:c.total,dist_m:c.dist,anchors:c.anchors}}));
+  connections.forEach(c=>f.push({type:'Feature',geometry:{type:'LineString',coordinates:[[c.a.lng,c.a.lat],[c.b.lng,c.b.lat]]},properties:{tipo:'conexao',de:c.a.id,para:c.b.id}}));
+  const blob=new Blob([JSON.stringify({type:'FeatureCollection',features:f},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rede_fibra.geojson';a.click();
+}
+
+async function exportKMZ(){
+  if(typeof JSZip==='undefined'){alert('JSZip não carregado.');return;}
+  let k=`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>FiberMap Pro v4</name>\n`;
+  postes.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
+  ctos.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
+  ceos.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
+  cabos.forEach(c=>{const co=c.points.map(p=>`${p[1]},${p[0]},0`).join('\n');const rgb=c.color.replace('#','');const r=rgb.slice(0,2),g=rgb.slice(2,4),b=rgb.slice(4,6);k+=`<Placemark><name>${c.nome}</name><Style><LineStyle><color>ff${b}${g}${r}</color><width>3</width></LineStyle></Style><LineString><tessellate>1</tessellate><coordinates>${co}</coordinates></LineString></Placemark>\n`;});
+  k+=`</Document></kml>`;
+  const z=new JSZip();z.file('doc.kml',k);
+  const blob=await z.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rede_fibra.kmz';a.click();URL.revokeObjectURL(a.href);
+}
+
+// ════════════════════════════════════════
+// KEYBOARD
+// ════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
+  if(e.key==='Escape'){
+    if(document.getElementById('em-overlay').classList.contains('show')){closeEmModal();return;}
+    if(document.getElementById('cable-overlay').classList.contains('show')){closeCableModal();return;}
+    if(document.getElementById('conf-overlay').classList.contains('show')){confCancel();return;}
+    if(drawingCabo)cancelCabo();
+    if(connFirst)resetConnFirst();
+    return;
+  }
+  const km={s:'select',p:'poste',t:'cto',e:'ceo',c:'cabo',n:'conn'};
+  if(km[e.key]){setMode(km[e.key]);return;}
+  if(e.key==='Enter'&&drawingCabo&&caboPoints.length>=2){finishCabo();return;}
+  if((e.key==='Delete'||e.key==='Backspace')&&selectedElem){e.preventDefault();askRemove(selectedElem);}
+});
+
+document.getElementById('em-overlay').addEventListener('click',function(e){if(e.target===this)closeEmModal();});
+document.getElementById('cable-overlay').addEventListener('click',function(e){if(e.target===this)closeCableModal();});
+document.getElementById('conf-overlay').addEventListener('click',function(e){if(e.target===this)confCancel();});
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+window.addEventListener('load',()=>{
+  if(typeof L==='undefined'){
+    document.getElementById('map').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#e6edf3;font-family:monospace">Leaflet não carregou. Verifique sua conexão.</div>';
+    return;
+  }
+  try{
+    initMap();buildCableTypeGrid();updStats();updList();
+  }catch(e){
+    console.error('Erro ao inicializar mapa:',e);
+    document.getElementById('map').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#e6edf3;font-family:monospace">Erro ao carregar mapa: '+e.message+'</div>';
+  }
+});
+</script>
+</body>
+</html>
