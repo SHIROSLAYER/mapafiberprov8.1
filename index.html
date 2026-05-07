@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>FiberMap Pro v7.1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>FiberMap Pro v7.2</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -17,25 +17,35 @@
   --font:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font)}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);touch-action:manipulation}
 #app{display:flex;flex-direction:column;height:100vh}
 
-#topbar{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--border);height:48px;flex-shrink:0;padding:0 12px;overflow-x:auto;gap:0}
-#logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--green);padding-right:16px;border-right:1px solid var(--border);margin-right:10px;white-space:nowrap}
-#logo svg{width:22px;height:22px}
-.tbg{display:flex;align-items:center;gap:4px;padding:0 10px;border-right:1px solid var(--border);flex-shrink:0}
-.tbg:last-child{border-right:none;margin-left:auto}
-.tbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-right:4px;font-family:var(--mono)}
-.tb{display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:12px;font-family:var(--font);font-weight:500;transition:all .15s;white-space:nowrap}
-.tb:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
-.tb.act{background:var(--green2);color:#fff;border-color:var(--green);box-shadow:0 0 10px var(--glow)}
-.tb.danger:hover{background:rgba(239,68,68,.1);color:var(--red);border-color:var(--red)}
-.tb.exp:hover{background:rgba(59,130,246,.1);color:var(--blue);border-color:var(--blue)}
-.tsel{padding:5px 8px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-family:var(--font);cursor:pointer;outline:none}
-input[type=color]{width:26px;height:26px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:none;padding:2px}
+/* TOPBAR MELHORADA */
+#topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(135deg, #0d6b50 0%, #161b22 100%);
+  border-bottom:2px solid var(--green);height:52px;flex-shrink:0;padding:0 16px;
+  box-shadow:0 2px 12px rgba(0,0,0,.5);z-index:100;
+}
+#logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700;color:#fff;white-space:nowrap}
+#logo svg{width:24px;height:24px;stroke:#1D9E75}
+.tbg{display:flex;align-items:center;gap:4px;padding:0 8px;border-right:1px solid rgba(255,255,255,.1);flex-shrink:0}
+.tbg:last-child{border-right:none}
+.tbl{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.8px;margin-right:4px;font-family:var(--mono);display:none}
+.tb{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--r);border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#ccc;cursor:pointer;font-size:12px;font-family:var(--font);font-weight:500;transition:all .15s;white-space:nowrap}
+.tb:hover{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.4)}
+.tb.act{background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 0 10px var(--glow)}
+.tb.danger:hover{background:rgba(239,68,68,.15);color:var(--red);border-color:var(--red)}
+.tb.exp:hover{background:rgba(59,130,246,.15);color:var(--blue);border-color:var(--blue)}
 
+/* MAIN LAYOUT */
 #main{display:flex;flex:1;overflow:hidden}
-#lp{width:210px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+
+/* SIDEBAR COM TOGGLE */
+#lp{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width 0.25s, opacity 0.25s;position:relative}
+#lp.collapsed{width:0;opacity:0;overflow:hidden}
+#lp-toggle{position:absolute;right:-20px;top:50%;transform:translateY(-50%);width:20px;height:48px;background:var(--bg2);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:12px;z-index:10;transition:right 0.25s,border-radius 0.25s;user-select:none}
+#lp.collapsed #lp-toggle{right:0;border-left:1px solid var(--border);border-radius:8px 0 0 8px}
 .ps{border-bottom:1px solid var(--border);padding:10px 12px}
 .pt{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono);margin-bottom:8px}
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -56,11 +66,87 @@ input[type=color]{width:26px;height:26px;border:1px solid var(--border);border-r
 .eidel{color:var(--red);opacity:0;cursor:pointer;padding:0 3px;font-size:13px}
 .ei:hover .eidel{opacity:1}
 
+/* MAP CONTAINER */
 #mw{flex:1;position:relative}
 #map{width:100%;height:100%}
+
+/* STATUSBAR */
 #sb{height:26px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:14px;font-size:11px;font-family:var(--mono);color:var(--text3);flex-shrink:0}
 .sbv{color:var(--text2)}
 #sbm{color:var(--green);font-weight:600}
+
+/* RESPONSIVIDADE */
+@media (max-width:768px){
+  #topbar{height:44px;padding:0 8px}
+  #topbar .tb{font-size:10px;padding:4px 6px;gap:3px}
+  #lp{width:180px}
+  #lp-toggle{right:-16px;width:16px;height:40px}
+}
+.mobile .tb{padding:8px 12px;font-size:14px}
+.mobile .ei{padding:10px 14px;font-size:13px}
+.gmaps-link{color:#60A5FA;text-decoration:underline;cursor:pointer;font-size:11px;font-family:var(--mono)}
+.gmaps-link:hover{color:#93C5FD}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div id="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h4M17 12h4M12 3v4M12 17v4"/><path d="M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8"/></svg>
+      FiberMap Pro
+    </div>
+    <div class="tbg">
+      <button class="tb act" id="btn-select" onclick="setMode('select')">↖ Selecionar [S]</button>
+      <button class="tb" id="btn-armario" onclick="setMode('armario')">◻ Armário [A]</button>
+      <button class="tb" id="btn-poste" onclick="setMode('poste')">◉ Poste [P]</button>
+      <button class="tb" id="btn-cabo" onclick="setMode('cabo')">⌇ Cabo [C]</button>
+      <button class="tb" id="btn-conn" onclick="setMode('conn')">⟷ Conectar [N]</button>
+    </div>
+    <div class="tbg">
+      <button class="tb" onclick="document.getElementById('fkml').click()">↑ KML</button>
+      <input type="file" id="fkml" accept=".kml,.kmz" onchange="loadKML(event)">
+    </div>
+    <div class="tbg">
+      <button class="tb exp" onclick="exportGeoJSON()">↓ GeoJSON</button>
+      <button class="tb exp" onclick="exportKMZ()">↓ KMZ</button>
+      <button class="tb exp" onclick="downloadProjectJSON()">↓ Projeto</button>
+      <button class="tb" onclick="document.getElementById('fproj').click()">↑ Projeto</button>
+      <input type="file" id="fproj" accept=".json" onchange="importProjectFile(event)" style="display:none">
+      <button class="tb danger" onclick="askClear()">✕ Limpar</button>
+    </div>
+  </div>
+  <div id="main">
+    <div id="lp">
+      <div id="lp-toggle" onclick="toggleSidebar()" title="Recolher/Expandir">◀</div>
+      <div class="ps">
+        <div class="pt">Estatísticas</div>
+        <div class="sg">
+          <div class="sc"><div class="sl">Armários</div><div class="sv" style="color:var(--magenta)" id="cnt-a">0</div></div>
+          <div class="sc"><div class="sl">Postes</div><div class="sv blue" id="cnt-p">0</div></div>
+          <div class="sc"><div class="sl">Cabos</div><div class="sv" id="cnt-c">0</div></div>
+          <div class="sc sf"><div class="sl">Total cabo</div><div class="sv green" id="cnt-m">0 m</div></div>
+        </div>
+      </div>
+      <div class="ps">
+        <div class="pt">Legenda</div>
+        <div class="li"><div class="ld" style="background:#EC4899"></div>Armário</div>
+        <div class="li"><div class="ld" style="background:#3B82F6"></div>Poste</div>
+        <div class="li"><div class="ll" style="background:#1D9E75"></div>Cabo</div>
+      </div>
+      <div class="ps" style="border-bottom:none"><div class="pt">Elementos</div></div>
+      <div id="elw"><div id="elist"></div></div>
+    </div>
+    <div id="mw"><div id="map"></div></div>
+  </div>
+  <div id="sb">
+    <div>Modo: <span class="sbv" id="sbm">Selecionar</span></div>
+    <div>Zoom: <span class="sbv" id="sbz">13</span></div>
+    <div>Lat: <span class="sbv" id="sblat">—</span></div>
+    <div>Lng: <span class="sbv" id="sblng">—</span></div>
+    <div style="margin-left:auto">FiberMap Pro v7.2</div>
+  </div>
+</div>
+<style>
 /* CABLE CREATION MODAL */
 #cable-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:8000;align-items:center;justify-content:center}
 #cable-overlay.show{display:flex}
@@ -122,7 +208,6 @@ input[type=color]{width:26px;height:26px;border:1px solid var(--border);border-r
 .pab:hover{background:var(--bg4);color:var(--text)}
 .pab.gn{background:var(--green2);color:#fff;border-color:var(--green)}.pab.gn:hover{background:var(--green)}
 .pab.rd{border-color:rgba(239,68,68,.4);color:var(--red)}.pab.rd:hover{background:rgba(239,68,68,.1)}
-.pab.am{border-color:rgba(245,158,11,.4);color:var(--amber)}.pab.am:hover{background:rgba(245,158,11,.1)}
 
 .ci{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);margin-bottom:7px}
 .ci-info{flex:1}
@@ -163,38 +248,7 @@ input[type=color]{width:26px;height:26px;border:1px solid var(--border);border-r
 .leaflet-container{background:#1a1f2e}
 .leaflet-popup-content-wrapper{background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:var(--rl)}
 </style>
-</head>
-<body>
-<div id="app">
-  <div id="topbar">
-    <div id="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h4M17 12h4M12 3v4M12 17v4"/><path d="M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8"/></svg>FiberMap Pro</div>
-    <div class="tbg"><span class="tbl">Modo</span>
-      <button class="tb act" id="btn-select" onclick="setMode('select')">↖ Selecionar [S]</button>
-      <button class="tb" id="btn-armario" onclick="setMode('armario')">◻ Armário [A]</button>
-      <button class="tb" id="btn-poste" onclick="setMode('poste')">◉ Poste [P]</button>
-      <button class="tb" id="btn-cabo" onclick="setMode('cabo')">⌇ Cabo [C]</button>
-      <button class="tb" id="btn-conn" onclick="setMode('conn')">⟷ Conectar [N]</button>
-    </div>
-    <div class="tbg"><button class="tb" onclick="document.getElementById('fkml').click()">↑ KML/KMZ</button><input type="file" id="fkml" accept=".kml,.kmz" onchange="loadKML(event)"></div>
-    <div class="tbg">
-      <button class="tb exp" onclick="exportGeoJSON()">↓ GeoJSON</button>
-      <button class="tb exp" onclick="exportKMZ()">↓ KMZ</button>
-      <button class="tb exp" onclick="downloadProjectJSON()">↓ Projeto</button>
-      <button class="tb" onclick="document.getElementById('fproj').click()">↑ Projeto</button><input type="file" id="fproj" accept=".json" onchange="importProjectFile(event)" style="display:none">
-      <button class="tb danger" onclick="askClear()">✕ Limpar</button>
-    </div>
-  </div>
-  <div id="main">
-    <div id="lp">
-      <div class="ps"><div class="pt">Estatísticas</div><div class="sg"><div class="sc"><div class="sl">Armários</div><div class="sv" style="color:var(--magenta)" id="cnt-a">0</div></div><div class="sc"><div class="sl">Postes</div><div class="sv blue" id="cnt-p">0</div></div><div class="sc"><div class="sl">Cabos</div><div class="sv" id="cnt-c">0</div></div><div class="sc sf"><div class="sl">Total cabo</div><div class="sv green" id="cnt-m">0 m</div></div></div></div>
-      <div class="ps"><div class="pt">Legenda</div><div class="li"><div class="ld" style="background:#EC4899"></div>Armário</div><div class="li"><div class="ld" style="background:#3B82F6"></div>Poste</div><div class="li"><div class="ll" style="background:#1D9E75"></div>Cabo</div></div>
-      <div class="ps" style="border-bottom:none"><div class="pt">Elementos</div></div>
-      <div id="elw"><div id="elist"></div></div>
-    </div>
-    <div id="mw"><div id="map"></div></div>
-  </div>
-  <div id="sb"><div>Modo: <span class="sbv" id="sbm">Selecionar</span></div><div>Zoom: <span class="sbv" id="sbz">13</span></div><div>Lat: <span class="sbv" id="sblat">—</span></div><div>Lng: <span class="sbv" id="sblng">—</span></div><div style="margin-left:auto">FiberMap Pro v7.1</div></div>
-</div>
+
 <!-- CABLE CREATION MODAL -->
 <div id="cable-overlay">
   <div id="cable-modal">
@@ -268,7 +322,7 @@ input[type=color]{width:26px;height:26px;border:1px solid var(--border);border-r
   </div>
 </div>
 
-<!-- SUB-ELEMENT MODAL (OLT/CTO/Derivação/Emenda vinculados ao armário ou poste) -->
+<!-- SUB-ELEMENT MODAL -->
 <div id="sub-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9500;align-items:center;justify-content:center">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);width:440px;max-width:95vw;box-shadow:0 24px 80px rgba(0,0,0,.7);overflow:hidden">
     <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border)">
@@ -280,37 +334,14 @@ input[type=color]{width:26px;height:26px;border:1px solid var(--border);border-r
       <button onclick="closeSubModal()" style="width:28px;height:28px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
-      <div>
-        <div class="cm-label">Identificação</div>
-        <input id="sub-nome" class="cm-input" placeholder="Nome ou deixe em branco para auto">
-      </div>
-      <div style="display:flex;gap:10px" id="sub-spec-wrap">
-        <div style="flex:1">
-          <div id="sub-spec-label" class="cm-label">Portas</div>
-          <input id="sub-spec-input" class="cm-input" type="number" min="1" max="64" value="8">
-        </div>
-      </div>
-      <div id="sub-split-row">
-        <div class="cm-label">Tipo de Splitter</div>
-        <div style="display:flex;gap:8px">
-          <div id="sub-split-1-8" class="ctb sel" style="flex:1;padding:10px;text-align:center;cursor:pointer" onclick="selectSubSplit('1/8')">
-            <div style="font-size:13px;font-weight:700;color:var(--green);font-family:var(--mono)">1/8</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">8 saídas</div>
-          </div>
-          <div id="sub-split-1-16" class="ctb" style="flex:1;padding:10px;text-align:center;cursor:pointer;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)" onclick="selectSubSplit('1/16')">
-            <div style="font-size:13px;font-weight:700;color:var(--amber);font-family:var(--mono)">1/16</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">16 saídas</div>
-          </div>
-          <div id="sub-split-none" class="ctb" style="flex:1;padding:10px;text-align:center;cursor:pointer" onclick="selectSubSplit('none')">
-            <div style="font-size:13px;font-weight:700;color:var(--text2);font-family:var(--mono)">—</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">Sem splitter</div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="cm-label">Observações</div>
-        <input id="sub-obs" class="cm-input" placeholder="Opcional">
-      </div>
+      <div><div class="cm-label">Identificação</div><input id="sub-nome" class="cm-input" placeholder="Nome ou deixe em branco para auto"></div>
+      <div style="display:flex;gap:10px"><div style="flex:1"><div id="sub-spec-label" class="cm-label">Portas</div><input id="sub-spec-input" class="cm-input" type="number" min="1" max="64" value="8"></div></div>
+      <div id="sub-split-row"><div class="cm-label">Tipo de Splitter</div><div style="display:flex;gap:8px">
+        <div id="sub-split-1-8" class="ctb sel" style="flex:1;padding:10px;text-align:center;cursor:pointer" onclick="selectSubSplit('1/8')"><div style="font-size:13px;font-weight:700;color:var(--green);font-family:var(--mono)">1/8</div><div style="font-size:10px;color:var(--text3);margin-top:2px">8 saídas</div></div>
+        <div id="sub-split-1-16" class="ctb" style="flex:1;padding:10px;text-align:center;cursor:pointer;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)" onclick="selectSubSplit('1/16')"><div style="font-size:13px;font-weight:700;color:var(--amber);font-family:var(--mono)">1/16</div><div style="font-size:10px;color:var(--text3);margin-top:2px">16 saídas</div></div>
+        <div id="sub-split-none" class="ctb" style="flex:1;padding:10px;text-align:center;cursor:pointer" onclick="selectSubSplit('none')"><div style="font-size:13px;font-weight:700;color:var(--text2);font-family:var(--mono)">—</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Sem splitter</div></div>
+      </div></div>
+      <div><div class="cm-label">Observações</div><input id="sub-obs" class="cm-input" placeholder="Opcional"></div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 20px 20px">
       <button class="cm-btn" onclick="closeSubModal()">Cancelar</button>
@@ -397,7 +428,24 @@ let diagramState={offsetX:0,offsetY:0,dragging:null,elements:{}};
 let fiberTracing={active:false,startFiber:null,path:[],highlightedElements:[]};
 
 // ════════════════════════════════════════
-// MAP INIT (OpenStreetMap)
+// DETECTAR MOBILE
+// ════════════════════════════════════════
+const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+if(isMobile){document.body.classList.add('mobile');}
+
+// ════════════════════════════════════════
+// TOGGLE SIDEBAR
+// ════════════════════════════════════════
+function toggleSidebar(){
+  const lp=document.getElementById('lp');
+  lp.classList.toggle('collapsed');
+  const btn=document.getElementById('lp-toggle');
+  btn.innerHTML=lp.classList.contains('collapsed')?'▶':'◀';
+  setTimeout(()=>{if(map)map.invalidateSize();},250);
+}
+
+// ════════════════════════════════════════
+// MAP INIT
 // ════════════════════════════════════════
 function initMap(){
   map=L.map('map',{zoomControl:false,doubleClickZoom:false}).setView([-15.9,-52.22],13);
@@ -435,7 +483,7 @@ function setMode(m){
 }
 
 // ════════════════════════════════════════
-// ICONS COM BADGE (inclui OLTs no armário)
+// ICONS COM BADGE
 // ════════════════════════════════════════
 function mkIcon(tipo,label,children){
   const C={
@@ -449,7 +497,6 @@ function mkIcon(tipo,label,children){
   const c=C[tipo]||{bg:'#222',bd:'#888',tx:'#aaa'};
   const sz=tipo==='poste'||tipo==='armario'?28:34,fs=label&&label.length>6?7:9,rx=tipo==='armario'?'6px':(tipo==='poste'?'50%':'8px');
   let badges='';
-  // Badge para poste (CTO/Emenda/Deriv)
   if(tipo==='poste'&&children&&children.length){
     const BADGE_CFG={cto:{l:'C',col:'#F59E0B'},emenda:{l:'E',col:'#EF4444'},deriv:{l:'D',col:'#8B5CF6'}};
     const counts={};children.forEach(ch=>{counts[ch.tipo]=(counts[ch.tipo]||0)+1;});
@@ -461,7 +508,6 @@ function mkIcon(tipo,label,children){
       bx+=txt.length*5+8;
     });
   }
-  // Badge para armário (OLTs)
   if(tipo==='armario'&&children&&children.length){
     const oltCount=children.filter(ch=>ch.tipo==='olt').length;
     if(oltCount>0){
@@ -472,15 +518,17 @@ function mkIcon(tipo,label,children){
   return L.divIcon({className:'',html:`<div style="position:relative;display:inline-block">${badges}<div style="width:${sz}px;height:${sz}px;border-radius:${rx};background:${c.bg};border:2px solid ${c.bd};display:flex;align-items:center;justify-content:center;color:${c.tx};font-size:${fs}px;font-weight:700;font-family:'JetBrains Mono',monospace;box-shadow:0 0 8px rgba(0,0,0,.6)">${label||'?'}</div></div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-sz/2]});
 }
 
-function refreshPosteIcon(p){if(p&&p.marker)p.marker.setIcon(mkIcon('poste',p.id,p.children||[]));}
-function refreshArmarioIcon(a){if(a&&a.marker)a.marker.setIcon(mkIcon('armario',a.id,a.children||[]));}
+function refreshPosteIcon(p){if(p&&p.marker)p.marker.setIcon(mkIcon('poste',p.nome||p.id,p.children||[]));}
+function refreshArmarioIcon(a){if(a&&a.marker)a.marker.setIcon(mkIcon('armario',a.nome||a.id,a.children||[]));}
+
 // ════════════════════════════════════════
 // ADD ELEMENTS
 // ════════════════════════════════════════
 function addArmario(lat,lng,opts={}){
   armcnt++;const num=opts.num||armcnt,id='ARM-'+String(num).padStart(2,'0');
-  const d={id,num,lat,lng,tipo:'armario',nome:opts.nome||`Armário ${num}`,capacidade:opts.capacidade||24,obs:opts.obs||'',children:[],fibers:{connections:[],splitters:[],diagramPositions:{}}};
-  const mk=L.marker([lat,lng],{icon:mkIcon('armario',id,[]),draggable:true}).addTo(map);
+  const nome=opts.nome||`Armário ${num}`;
+  const d={id,num,lat,lng,tipo:'armario',nome:nome,capacidade:opts.capacidade||24,obs:opts.obs||'',children:[],fibers:{connections:[],splitters:[],diagramPositions:{}}};
+  const mk=L.marker([lat,lng],{icon:mkIcon('armario',nome,[]),draggable:true}).addTo(map);
   d.marker=mk;armarios.push(d);
   mk.on('click',e=>{L.DomEvent.stopPropagation(e);handleElemClick(d);});
   mk.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(d);});
@@ -491,8 +539,9 @@ function addArmario(lat,lng,opts={}){
 
 function addPoste(lat,lng,opts={}){
   pcnt++;const num=opts.num||pcnt,id='P'+num;
-  const d={id,num,lat,lng,tipo:'poste',nome:opts.nome||`Poste ${num}`,obs:opts.obs||'',children:[],fibers:{connections:[],splitters:[],diagramPositions:{}}};
-  const mk=L.marker([lat,lng],{icon:mkIcon('poste',id,[]),draggable:true}).addTo(map);
+  const nome=opts.nome||`Poste ${num}`;
+  const d={id,num,lat,lng,tipo:'poste',nome:nome,obs:opts.obs||'',children:[],fibers:{connections:[],splitters:[],diagramPositions:{}}};
+  const mk=L.marker([lat,lng],{icon:mkIcon('poste',nome,[]),draggable:true}).addTo(map);
   d.marker=mk;postes.push(d);
   mk.on('click',e=>{L.DomEvent.stopPropagation(e);handleElemClick(d);});
   mk.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(d);});
@@ -501,25 +550,28 @@ function addPoste(lat,lng,opts={}){
   updStats();updList();scheduleAutosave();return d;
 }
 
-// Subelemento genérico (OLT para armário; CTO/Emenda/Deriv para poste)
 function addSubElement(tipo,parent,opts={}){
   const lat=parent.lat+0.00015,lng=parent.lng+0.00015;
   let d;
   if(tipo==='olt'){
     oltcnt++;const num=opts.num||oltcnt,id='OLT-'+String(num).padStart(2,'0');
-    d={id,num,lat,lng,tipo:'olt',nome:opts.nome||id,portas:opts.portas||16,parentId:parent.id,obs:opts.obs||'',fibers:{connections:[],diagramPositions:{}}};
+    const nome=opts.nome||id;
+    d={id,num,lat,lng,tipo:'olt',nome:nome,portas:opts.portas||16,parentId:parent.id,obs:opts.obs||'',fibers:{connections:[],diagramPositions:{}}};
     olts.push(d);
   }else if(tipo==='cto'){
     ctocnt++;const num=opts.num||ctocnt,id='CTO-'+String(num).padStart(2,'0');
-    d={id,num,lat,lng,tipo:'cto',nome:opts.nome||id,portas:opts.portas||8,splitter:opts.splitter||null,parentId:parent.id,obs:opts.obs||'',fibers:{connections:[],splitters:[],diagramPositions:{}}};
+    const nome=opts.nome||id;
+    d={id,num,lat,lng,tipo:'cto',nome:nome,portas:opts.portas||8,splitter:opts.splitter||null,parentId:parent.id,obs:opts.obs||'',fibers:{connections:[],splitters:[],diagramPositions:{}}};
     ctos.push(d);
   }else if(tipo==='emenda'){
     emcnt++;const num=opts.num||emcnt,id='E'+String(num).padStart(2,'0');
-    d={id,num,lat,lng,tipo:'emenda',nome:opts.nome||('Emenda '+id),bandejas:opts.bandejas||12,parentId:parent.id,obs:opts.obs||'',fibers:{connections:[],splitters:[],diagramPositions:{}}};
+    const nome=opts.nome||('Emenda '+id);
+    d={id,num,lat,lng,tipo:'emenda',nome:nome,bandejas:opts.bandejas||12,parentId:parent.id,obs:opts.obs||'',fibers:{connections:[],splitters:[],diagramPositions:{}}};
     emendas.push(d);
   }else if(tipo==='deriv'){
     dcnt++;const num=opts.num||dcnt,id='D'+String(num).padStart(2,'0');
-    d={id,num,lat,lng,tipo:'deriv',nome:opts.nome||('Derivação '+id),capacidade:opts.capacidade||8,splitter:opts.splitter||null,parentId:parent.id,obs:opts.obs||'',fibers:{connections:[],splitters:[],diagramPositions:{}}};
+    const nome=opts.nome||('Derivação '+id);
+    d={id,num,lat,lng,tipo:'deriv',nome:nome,capacidade:opts.capacidade||8,splitter:opts.splitter||null,parentId:parent.id,obs:opts.obs||'',fibers:{connections:[],splitters:[],diagramPositions:{}}};
     derivs.push(d);
   }
   if(!parent.children)parent.children=[];
@@ -535,7 +587,7 @@ function addSubElement(tipo,parent,opts={}){
 function confirmMove(d){
   const pos=d.marker.getLatLng();
   const nl=pos.lat,ng=pos.lng;
-  showConf('Mover elemento?',`Confirma o novo posicionamento de <strong>${d.id}</strong>?`,
+  showConf('Mover elemento?',`Confirma o novo posicionamento de <strong>${d.nome||d.id}</strong>?`,
     ()=>{
       d.lat=nl;d.lng=ng;
       updateAnchoredCabos(d);
@@ -569,7 +621,6 @@ function updateAnchoredCabos(poste){
   updStats();
   if(currentEM && currentEM.tipo==='cabo') openEmModal(currentEM);
 }
-
 // ════════════════════════════════════════
 // CABLE MODAL
 // ════════════════════════════════════════
@@ -736,6 +787,7 @@ function calcDist(pts){
   let d=0;for(let i=1;i<pts.length;i++)d+=L.latLng(pts[i-1]).distanceTo(L.latLng(pts[i]));
   return Math.round(d);
 }
+
 // ════════════════════════════════════════
 // ELEM CLICK / CONNECT
 // ════════════════════════════════════════
@@ -747,7 +799,7 @@ function handleElemClick(d){
       connFirst=d;
       const el=d.marker.getElement();
       if(el)el.style.filter='drop-shadow(0 0 8px #1D9E75)';
-      document.getElementById('sbm').textContent=`Conectar — 2º elemento (origem: ${d.id})`;
+      document.getElementById('sbm').textContent=`Conectar — 2º elemento (origem: ${d.nome||d.id})`;
     }else{
       if(connFirst.id===d.id){resetConnFirst();return;}
       addConn(connFirst,d);resetConnFirst();
@@ -795,7 +847,6 @@ function doRemove(d){
   connections=connections.filter(c=>c.a.id!==d.id&&c.b.id!==d.id);
 
   if(d.tipo==='armario'){
-    // remove subelementos (OLTs) primeiro
     [...olts.filter(o=>o.parentId===d.id)].forEach(sub=>doRemove(sub));
     const i=armarios.findIndex(p=>p.id===d.id);
     if(i>=0){map.removeLayer(armarios[i].marker);armarios.splice(i,1);}
@@ -806,31 +857,19 @@ function doRemove(d){
   }else if(d.tipo==='olt'){
     const i=olts.findIndex(p=>p.id===d.id);
     if(i>=0)olts.splice(i,1);
-    if(d.parentId){
-      const parent=armarios.find(p=>p.id===d.parentId);
-      if(parent){parent.children=parent.children.filter(c=>c.id!==d.id);refreshArmarioIcon(parent);}
-    }
+    if(d.parentId){const parent=armarios.find(p=>p.id===d.parentId);if(parent){parent.children=parent.children.filter(c=>c.id!==d.id);refreshArmarioIcon(parent);}}
   }else if(d.tipo==='cto'){
     const i=ctos.findIndex(p=>p.id===d.id);
     if(i>=0)ctos.splice(i,1);
-    if(d.parentId){
-      const parent=postes.find(p=>p.id===d.parentId);
-      if(parent){parent.children=parent.children.filter(c=>c.id!==d.id);refreshPosteIcon(parent);}
-    }
+    if(d.parentId){const parent=postes.find(p=>p.id===d.parentId);if(parent){parent.children=parent.children.filter(c=>c.id!==d.id);refreshPosteIcon(parent);}}
   }else if(d.tipo==='emenda'){
     const i=emendas.findIndex(p=>p.id===d.id);
     if(i>=0)emendas.splice(i,1);
-    if(d.parentId){
-      const parent=postes.find(p=>p.id===d.parentId);
-      if(parent){parent.children=parent.children.filter(c=>c.id!==d.id);refreshPosteIcon(parent);}
-    }
+    if(d.parentId){const parent=postes.find(p=>p.id===d.parentId);if(parent){parent.children=parent.children.filter(c=>c.id!==d.id);refreshPosteIcon(parent);}}
   }else if(d.tipo==='deriv'){
     const i=derivs.findIndex(p=>p.id===d.id);
     if(i>=0)derivs.splice(i,1);
-    if(d.parentId){
-      const parent=postes.find(p=>p.id===d.parentId);
-      if(parent){parent.children=parent.children.filter(c=>c.id!==d.id);refreshPosteIcon(parent);}
-    }
+    if(d.parentId){const parent=postes.find(p=>p.id===d.parentId);if(parent){parent.children=parent.children.filter(c=>c.id!==d.id);refreshPosteIcon(parent);}}
   }else if(d.tipo==='cabo'){
     const i=cabos.findIndex(p=>p.id===d.id);
     if(i>=0){map.removeLayer(cabos[i].poly);cabos.splice(i,1);}
@@ -855,21 +894,27 @@ function cablesNear(d){
 }
 
 // ════════════════════════════════════════
-// CABLE DIRECTION (CORRIGIDA: 1º ponto = SAÍDA, último = ENTRADA)
+// CABLE DIRECTION (CORRIGIDA: 1º ponto = ENTRADA, último = SAÍDA)
 // ════════════════════════════════════════
 function cableDir(d,c){
-  if(!c.anchorMap) return 'saída'; // fallback
+  if(!c.anchorMap) return 'entrada';
   const idxs = Object.entries(c.anchorMap)
     .filter(([,id])=>id===d.id)
     .map(([i])=>parseInt(i));
-  if(idxs.length===0) return 'saída';
+  if(idxs.length===0) return 'entrada';
   const idx = Math.min(...idxs);
   const lastIdx = c.points.length-1;
-  // Primeiro ponto ancorado = SAÍDA (início do cabo)
-  if(idx===0) return 'saída';
-  // Último ponto ancorado = ENTRADA (fim do cabo)
-  if(idx===lastIdx) return 'entrada';
+  if(idx===0) return 'entrada';
+  if(idx===lastIdx) return 'saída';
   return 'passagem';
+}
+
+function cableLabel(d,c){
+  const dir = cableDir(d,c);
+  const nomeCabo = c.nome || c.id;
+  if(dir==='entrada') return `${nomeCabo} – entrada`;
+  if(dir==='saída') return `${nomeCabo} – saída`;
+  return `${nomeCabo} – passagem`;
 }
 
 // ════════════════════════════════════════
@@ -914,7 +959,7 @@ function updCableLegend(){
   el.innerHTML=cabos.map(c=>`
     <div class="li">
       <div class="ll" style="background:${c.color}"></div>
-      <span style="font-size:11px;font-family:var(--mono)">${c.id} <span style="color:var(--text3)">${c.total}FO</span></span>
+      <span style="font-size:11px;font-family:var(--mono)">${c.nome||c.id} <span style="color:var(--text3)">${c.total}FO</span></span>
     </div>`).join('');
 }
 // ════════════════════════════════════════
@@ -935,7 +980,7 @@ function openEmModal(d){
   const c=CFG[d.tipo]||CFG.poste;
   const ic=document.getElementById('em-icon');
   ic.style.cssText=`background:${c.bg};border:2px solid ${c.bd};color:${c.tx}`;
-  ic.textContent=d.tipo==='cabo'?'⌇':d.tipo==='olt'?'◇':d.tipo==='armario'?'◻':d.id;
+  ic.textContent=d.tipo==='cabo'?'⌇':d.tipo==='olt'?'◇':d.tipo==='armario'?'◻':(d.nome||d.id).substring(0,2);
   document.getElementById('em-h2').textContent=d.nome||d.id;
   document.getElementById('em-sub').textContent=d.tipo.toUpperCase()+' · '+d.id+(d.tipo==='cabo'?` · ${d.total||d.grupos*d.fpg||'?'} FO`:'');
   
@@ -959,25 +1004,35 @@ function buildEmTabs(d){
   if(d.tipo==='armario'){
     ph+=`<div class="prr"><span>Capacidade</span><input class="pin" id="pi-capacidade" type="number" value="${d.capacidade||24}"></div>`;
     ph+=`<div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div><div class="prr"><span>Lng</span><span class="pv">${d.lng.toFixed(6)}</span></div>`;
+    ph+=`<div class="prr"><span>Google Maps</span><span class="pv"><a class="gmaps-link" href="https://www.google.com/maps?q=${d.lat},${d.lng}" target="_blank">Abrir no Maps ↗</a></span></div>`;
   }
-  if(d.tipo==='poste')ph+=`<div class="prr"><span>Nº</span><span class="pv">${d.num}</span></div><div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div><div class="prr"><span>Lng</span><span class="pv">${d.lng.toFixed(6)}</span></div>`;
+  if(d.tipo==='poste'){
+    ph+=`<div class="prr"><span>Nº</span><span class="pv">${d.num}</span></div><div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div><div class="prr"><span>Lng</span><span class="pv">${d.lng.toFixed(6)}</span></div>`;
+    ph+=`<div class="prr"><span>Google Maps</span><span class="pv"><a class="gmaps-link" href="https://www.google.com/maps?q=${d.lat},${d.lng}" target="_blank">Abrir no Maps ↗</a></span></div>`;
+  }
   if(d.tipo==='olt'){
     ph+=`<div class="prr"><span>Portas</span><input class="pin" id="pi-portas" type="number" value="${d.portas||16}"></div>`;
-    if(d.parentId)ph+=`<div class="prr"><span>Armário pai</span><span class="pv" style="cursor:pointer;color:var(--magenta)" onclick="zoomTo('${d.parentId}');closeEmModal()">↗ ${d.parentId}</span></div>`;
+    if(d.parentId)ph+=`<div class="prr"><span>Armário pai</span><span class="pv" style="cursor:pointer;color:var(--magenta)" onclick="zoomTo('${d.parentId}');closeEmModal()">↗ ${findById(d.parentId)?.nome||d.parentId}</span></div>`;
     ph+=`<div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div>`;
+    ph+=`<div class="prr"><span>Google Maps</span><span class="pv"><a class="gmaps-link" href="https://www.google.com/maps?q=${d.lat},${d.lng}" target="_blank">Abrir no Maps ↗</a></span></div>`;
   }
   if(d.tipo==='cto'){
     ph+=`<div class="prr"><span>Portas</span><input class="pin" id="pi-portas" type="number" value="${d.portas||8}"></div>`;
     if(d.splitter)ph+=`<div class="prr"><span>Splitter</span><span class="pv amber">${d.splitter}</span></div>`;
-    if(d.parentId)ph+=`<div class="prr"><span>Poste pai</span><span class="pv" style="cursor:pointer;color:var(--blue)" onclick="zoomTo('${d.parentId}');closeEmModal()">↗ ${d.parentId}</span></div>`;
+    if(d.parentId)ph+=`<div class="prr"><span>Poste pai</span><span class="pv" style="cursor:pointer;color:var(--blue)" onclick="zoomTo('${d.parentId}');closeEmModal()">↗ ${findById(d.parentId)?.nome||d.parentId}</span></div>`;
     ph+=`<div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div>`;
+    ph+=`<div class="prr"><span>Google Maps</span><span class="pv"><a class="gmaps-link" href="https://www.google.com/maps?q=${d.lat},${d.lng}" target="_blank">Abrir no Maps ↗</a></span></div>`;
   }
-  if(d.tipo==='emenda')ph+=`<div class="prr"><span>Bandejas</span><input class="pin" id="pi-bandejas" type="number" value="${d.bandejas||12}"></div><div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div>`;
+  if(d.tipo==='emenda'){
+    ph+=`<div class="prr"><span>Bandejas</span><input class="pin" id="pi-bandejas" type="number" value="${d.bandejas||12}"></div><div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div>`;
+    ph+=`<div class="prr"><span>Google Maps</span><span class="pv"><a class="gmaps-link" href="https://www.google.com/maps?q=${d.lat},${d.lng}" target="_blank">Abrir no Maps ↗</a></span></div>`;
+  }
   if(d.tipo==='deriv'){
     ph+=`<div class="prr"><span>Capacidade</span><input class="pin" id="pi-cap" type="number" value="${d.capacidade||8}"></div>`;
     if(d.splitter)ph+=`<div class="prr"><span>Splitter</span><span class="pv amber">${d.splitter}</span></div>`;
-    if(d.parentId)ph+=`<div class="prr"><span>Poste pai</span><span class="pv" style="cursor:pointer;color:var(--blue)" onclick="zoomTo('${d.parentId}');closeEmModal()">↗ ${d.parentId}</span></div>`;
+    if(d.parentId)ph+=`<div class="prr"><span>Poste pai</span><span class="pv" style="cursor:pointer;color:var(--blue)" onclick="zoomTo('${d.parentId}');closeEmModal()">↗ ${findById(d.parentId)?.nome||d.parentId}</span></div>`;
     ph+=`<div class="prr"><span>Lat</span><span class="pv">${d.lat.toFixed(6)}</span></div>`;
+    ph+=`<div class="prr"><span>Google Maps</span><span class="pv"><a class="gmaps-link" href="https://www.google.com/maps?q=${d.lat},${d.lng}" target="_blank">Abrir no Maps ↗</a></span></div>`;
   }
   if(d.tipo==='cabo'){
     const ESTILO={conv:'Convencional',fig8:'Figura 8',adss:'ADSS',drop:'Drop Indoor',blind:'Blindado',diel:'Dielétrico'};
@@ -985,7 +1040,7 @@ function buildEmTabs(d){
       <div class="prr"><span>Estrutura</span><span class="pv">${d.grupos||1} tubos × ${d.fpg||12} FO = ${d.total||d.grupos*d.fpg} FO</span></div>
       <div class="prr"><span>Estilo</span><span class="pv">${ESTILO[d.estilo]||d.estilo||'—'}</span></div>
       <div class="prr"><span>Comprimento</span><span class="pv green">${d.dist>=1000?(d.dist/1000).toFixed(3)+' km':d.dist+' m'}</span></div>
-      <div class="prr"><span>Postes ancorados</span><span class="pv">${(d.anchors||[]).join(', ')||'nenhum'}</span></div>`;
+      <div class="prr"><span>Âncoras</span><span class="pv">${(d.anchors||[]).map(aid=>findById(aid)?.nome||aid).join(', ')||'nenhum'}</span></div>`;
     ph+=`<div class="prt" style="margin-top:12px">Fibras (cores ABNT)</div><div class="fiber-preview" style="max-height:80px;overflow-y:auto">`;
     for(let i=0;i<Math.min(d.total||12,144);i++){const a=abntColor(i);ph+=`<div class="fp-dot" style="background:${a.fiber.hex};border-color:${a.tube.hex}" title="T${a.tubeN} F${a.fiberN} — ${a.fiber.name}"></div>`;}
     ph+=`</div>`;
@@ -1002,7 +1057,7 @@ function buildEmTabs(d){
         ph+=`<div class="prr" style="cursor:pointer" onclick="closeEmModal();setTimeout(()=>openEmModal(findById('${c.id}')),50)">
           <span style="display:flex;align-items:center;gap:6px">
             <span style="width:8px;height:8px;border-radius:50%;background:#06B6D4;flex-shrink:0;display:inline-block"></span>
-            <span class="pv" style="color:#06B6D4">${c.id}</span>
+            <span class="pv" style="color:#06B6D4">${c.nome||c.id}</span>
             <span style="color:var(--text3);font-size:10px">OLT</span>
           </span>
           <span style="color:var(--text3);font-size:10px">→ abrir</span>
@@ -1012,14 +1067,7 @@ function buildEmTabs(d){
       ph+=`<div style="color:var(--text3);font-size:11px;font-family:var(--mono);padding:4px 0">Nenhuma OLT vinculada.</div>`;
     }
     ph+=`</div>`;
-    // Botão para adicionar OLT
-    ph+=`<div class="prs"><div class="prt">Adicionar ao armário</div>
-      <div class="qag">
-        <div class="qab" onclick="quickAdd('olt',currentEM)">
-          <div class="qai" style="background:#0a3a1a;border:2px solid #06B6D4;color:#06B6D4">OLT</div>
-          <span class="qal">Nova OLT</span>
-        </div>
-      </div></div>`;
+    ph+=`<div class="prs"><div class="prt">Adicionar ao armário</div><div class="qag"><div class="qab" onclick="quickAdd('olt',currentEM)"><div class="qai" style="background:#0a3a1a;border:2px solid #06B6D4;color:#06B6D4">OLT</div><span class="qal">Nova OLT</span></div></div></div>`;
   }
   if(d.tipo==='poste'){
     const children=(d.children||[]);
@@ -1033,9 +1081,8 @@ function buildEmTabs(d){
         ph+=`<div class="prr" style="cursor:pointer" onclick="closeEmModal();setTimeout(()=>openEmModal(findById('${c.id}')),50)">
           <span style="display:flex;align-items:center;gap:6px">
             <span style="width:8px;height:8px;border-radius:50%;background:${COL[c.tipo]||'#888'};flex-shrink:0;display:inline-block"></span>
-            <span class="pv" style="color:${COL[c.tipo]||'#888'}">${c.id}</span>
-            <span style="color:var(--text3);font-size:10px">${lbl[c.tipo]||c.tipo}</span>
-            ${sp}
+            <span class="pv" style="color:${COL[c.tipo]||'#888'}">${c.nome||c.id}</span>
+            <span style="color:var(--text3);font-size:10px">${lbl[c.tipo]||c.tipo}</span>${sp}
           </span>
           <span style="color:var(--text3);font-size:10px">→ abrir</span>
         </div>`;
@@ -1044,23 +1091,11 @@ function buildEmTabs(d){
       ph+=`<div style="color:var(--text3);font-size:11px;font-family:var(--mono);padding:4px 0">Nenhum elemento vinculado ainda.</div>`;
     }
     ph+=`</div>`;
-    // Botões quick-add
-    ph+=`<div class="prs"><div class="prt">Adicionar elemento vinculado</div>
-      <div class="qag">
-        <div class="qab" onclick="quickAdd('cto',currentEM)">
-          <div class="qai" style="background:#3d2a0a;border:2px solid #F59E0B;color:#FCD34D">CTO</div>
-          <span class="qal">Nova CTO</span>
-        </div>
-        <div class="qab" onclick="quickAdd('emenda',currentEM)">
-          <div class="qai" style="background:#3d1212;border:2px solid #EF4444;color:#FCA5A5">E</div>
-          <span class="qal">Nova Emenda</span>
-        </div>
-        <div class="qab" onclick="quickAdd('deriv',currentEM)">
-          <div class="qai" style="background:#1a2433;border:2px solid #8B5CF6;color:#A78BFA">⑂</div>
-          <span class="qal">Derivação</span>
-        </div>
-      </div>
-    </div>`;
+    ph+=`<div class="prs"><div class="prt">Adicionar elemento vinculado</div><div class="qag">
+      <div class="qab" onclick="quickAdd('cto',currentEM)"><div class="qai" style="background:#3d2a0a;border:2px solid #F59E0B;color:#FCD34D">CTO</div><span class="qal">Nova CTO</span></div>
+      <div class="qab" onclick="quickAdd('emenda',currentEM)"><div class="qai" style="background:#3d1212;border:2px solid #EF4444;color:#FCA5A5">E</div><span class="qal">Nova Emenda</span></div>
+      <div class="qab" onclick="quickAdd('deriv',currentEM)"><div class="qai" style="background:#1a2433;border:2px solid #8B5CF6;color:#A78BFA">⑂</div><span class="qal">Derivação</span></div>
+    </div></div>`;
   }
   
   ph+=`<div class="pact"><button class="pab gn" onclick="saveProps()">✓ Salvar</button><button class="pab rd" onclick="askRemove(currentEM);closeEmModal()">✕ Remover</button></div>`;
@@ -1070,7 +1105,7 @@ function buildEmTabs(d){
   let ch='';
   if(d.tipo==='cabo'){
     const att=calcAtt(d);
-    ch=`<div class="ac"><div class="ac-t">${d.id} — ${d.typeName||''}</div><div class="ar"><span>Estrutura</span><span>${d.grupos||1}T × ${d.fpg||12}FO = ${d.total}FO</span></div>
+    ch=`<div class="ac"><div class="ac-t">${d.nome||d.id} — ${d.typeName||''}</div><div class="ar"><span>Estrutura</span><span>${d.grupos||1}T × ${d.fpg||12}FO = ${d.total}FO</span></div>
       <div class="ar"><span>Comprimento</span><span>${d.dist>=1000?(d.dist/1000).toFixed(3)+' km':d.dist+' m'}</span></div>
       <div class="ar"><span>Att. fibra</span><span>${att.af.toFixed(2)} dB</span></div>
       <div class="ar"><span>Emendas ×${att.ec}</span><span>${(att.ec*ATT.emenda).toFixed(2)} dB</span></div>
@@ -1083,8 +1118,10 @@ function buildEmTabs(d){
     ch='<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Nenhum cabo detectado nas proximidades.</div>';
   }else{
     near.forEach(c=>{
-      const dir=cableDir(d,c);const att=calcAtt(c);
-      ch+=`<div class="ci"><div class="eid" style="background:${c.color}"></div><div class="ci-info"><div class="ci-name">${c.nome}</div><div class="ci-meta">${c.typeName||c.typeId||''} · ${c.total||'?'} FO · ${c.dist>=1000?(c.dist/1000).toFixed(2)+' km':c.dist+' m'} · ${att.tot.toFixed(1)} dB</div></div><span class="ci-dir ${dir==='entrada'?'ci-in':dir==='saída'?'ci-out':'ci-mid'}">${dir}</span></div>`;
+      const label = cableLabel(d,c);
+      const att=calcAtt(c);
+      const dir=cableDir(d,c);
+      ch+=`<div class="ci"><div class="eid" style="background:${c.color}"></div><div class="ci-info"><div class="ci-name">${label}</div><div class="ci-meta">${c.typeName||c.typeId||''} · ${c.total||'?'} FO · ${c.dist>=1000?(c.dist/1000).toFixed(2)+' km':c.dist+' m'} · ${att.tot.toFixed(1)} dB</div></div><span class="ci-dir ${dir==='entrada'?'ci-in':dir==='saída'?'ci-out':'ci-mid'}">${dir}</span></div>`;
     });
   }
   tabs.push({label:'Cabos',html:ch});
@@ -1093,10 +1130,10 @@ function buildEmTabs(d){
   let ah='';
   const attSrc=d.tipo==='cabo'?[d]:near;
   if(!attSrc.length){ah='<div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Nenhum dado de atenuação disponível.</div>';}
-  else attSrc.forEach(c=>{const att=calcAtt(c);ah+=`<div class="ac"><div class="ac-t">${c.nome}</div><div class="ar"><span>Distância</span><span>${c.dist>=1000?(c.dist/1000).toFixed(3)+' km':c.dist+' m'}</span></div><div class="ar"><span>Att. fibra (${ATT.fibra} dB/km)</span><span>${att.af.toFixed(2)} dB</span></div><div class="ar"><span>Emendas CEO (×${att.ec})</span><span>${(att.ec*ATT.emenda).toFixed(2)} dB</span></div>${att.splitterLoss>0?`<div class="ar"><span>Splitters</span><span>${att.splitterLoss.toFixed(1)} dB</span></div>`:''}<div class="ar"><span>Conectores (×2)</span><span>${(ATT.conector*2).toFixed(1)} dB</span></div><div class="ar"><span>Total</span><span style="font-weight:600">${att.tot.toFixed(2)} dB</span></div><div class="ar"><span>Budget</span><span>${ATT.budget} dB</span></div>${att.margin>=5?`<span class="ab ok">OK — ${att.margin.toFixed(1)} dB</span>`:att.margin>=0?`<span class="ab wn">Limite — ${att.margin.toFixed(1)} dB</span>`:`<span class="ab bd">EXCEDE ${Math.abs(att.margin).toFixed(1)} dB</span>`}</div>`;});
+  else attSrc.forEach(c=>{const att=calcAtt(c);ah+=`<div class="ac"><div class="ac-t">${c.nome||c.id}</div><div class="ar"><span>Distância</span><span>${c.dist>=1000?(c.dist/1000).toFixed(3)+' km':c.dist+' m'}</span></div><div class="ar"><span>Att. fibra (${ATT.fibra} dB/km)</span><span>${att.af.toFixed(2)} dB</span></div><div class="ar"><span>Emendas CEO (×${att.ec})</span><span>${(att.ec*ATT.emenda).toFixed(2)} dB</span></div>${att.splitterLoss>0?`<div class="ar"><span>Splitters</span><span>${att.splitterLoss.toFixed(1)} dB</span></div>`:''}<div class="ar"><span>Conectores (×2)</span><span>${(ATT.conector*2).toFixed(1)} dB</span></div><div class="ar"><span>Total</span><span style="font-weight:600">${att.tot.toFixed(2)} dB</span></div><div class="ar"><span>Budget</span><span>${ATT.budget} dB</span></div>${att.margin>=5?`<span class="ab ok">OK — ${att.margin.toFixed(1)} dB</span>`:att.margin>=0?`<span class="ab wn">Limite — ${att.margin.toFixed(1)} dB</span>`:`<span class="ab bd">EXCEDE ${Math.abs(att.margin).toFixed(1)} dB</span>`}</div>`;});
   tabs.push({label:'Atenuação',html:ah});
 
-  // TAB: DIAGRAMA FIBRAS (para todos os elementos com cabos ou subelementos)
+  // TAB: DIAGRAMA FIBRAS
   if(d.tipo!=='cabo' && (near.length>0 || (d.children && d.children.length>0) || d.tipo==='cto' || d.tipo==='deriv' || d.tipo==='olt')){
     const fh=`<div style="position:relative;height:500px;overflow:hidden;background:#ffffff;border-radius:6px;" id="fcd">
       <div id="fcd-toolbar">
@@ -1136,6 +1173,8 @@ function saveProps(){
   if(d.tipo==='emenda'){const e=document.getElementById('pi-bandejas');if(e)d.bandejas=parseInt(e.value)||12;}
   if(d.tipo==='deriv'){const e=document.getElementById('pi-cap');if(e)d.capacidade=parseInt(e.value)||8;}
   document.getElementById('em-h2').textContent=d.nome||d.id;
+  if(d.tipo==='poste')refreshPosteIcon(d);
+  if(d.tipo==='armario')refreshArmarioIcon(d);
   updList();
   scheduleAutosave();
   const btn=event.target;btn.textContent='✓ Salvo!';setTimeout(()=>btn.textContent='✓ Salvar',1500);
@@ -1164,7 +1203,7 @@ function openSubElemModal(tipo,parentElem){
   const isOLT=tipo==='olt';
   const isCTO=tipo==='cto';
   document.getElementById('sub-modal-title').textContent=isOLT?'Nova OLT vinculada':isCTO?'Nova CTO vinculada':'Nova Derivação vinculada';
-  document.getElementById('sub-parent-info').textContent=`Vinculado a: ${parentElem.id} — ${parentElem.nome||parentElem.id}`;
+  document.getElementById('sub-parent-info').textContent=`Vinculado a: ${parentElem.nome||parentElem.id}`;
   
   const iconColor=isOLT?'#06B6D4':isCTO?'#F59E0B':'#8B5CF6';
   const iconBg=isOLT?'#0a3a1a':isCTO?'#3d2a0a':'#1a2433';
@@ -1211,14 +1250,7 @@ function confirmSubModal(){
     else if(document.getElementById('sub-split-1-16').classList.contains('sel'))splitterRatio='1/16';
   }
   
-  const opts={
-    nome:nome||undefined,
-    obs:obs||undefined,
-    portas:spec,
-    capacidade:spec,
-    splitter:splitterRatio
-  };
-  
+  const opts={nome:nome||undefined,obs:obs||undefined,portas:spec,capacidade:spec,splitter:splitterRatio};
   const nd=addSubElement(tipo,parent,opts);
   closeSubModal();
   map.setView([nd.lat,nd.lng],18);
@@ -1230,7 +1262,6 @@ function closeSubModal(){
   document.getElementById('sub-overlay').style.display='none';
   _subPending={tipo:null,parent:null};
 }
-
 // ════════════════════════════════════════
 // DIAGRAMA DE FIBRAS (SISTEMA ARRASTÁVEL)
 // ════════════════════════════════════════
@@ -1247,7 +1278,9 @@ function initFiberDiag(d){
   let x=50,y=50;
   near.forEach((c,i)=>{
     const id='cable_'+c.id;
-    if(!pos[id])pos[id]={x:x,y:y+i*60,w:120,h:40};
+    const label = cableLabel(d,c);
+    if(!pos[id])pos[id]={x:x,y:y+i*60,w:140,h:40,label:label};
+    else pos[id].label=label;
     diagramState.elements[id]={type:'cable',cable:c,...pos[id]};
   });
   
@@ -1281,7 +1314,7 @@ function renderDiagramSVG(d,svg){
   const cx=W/2-60,cy=H/2-30;
   const ecolor=d.tipo==='emenda'?'#EF4444':d.tipo==='poste'?'#3B82F6':d.tipo==='cto'?'#F59E0B':d.tipo==='olt'?'#06B6D4':d.tipo==='armario'?'#EC4899':'#8B5CF6';
   html+=`<rect x="${cx}" y="${cy}" width="120" height="60" rx="8" fill="${ecolor}22" stroke="${ecolor}" stroke-width="2"/>
-    <text x="${W/2}" y="${cy+25}" text-anchor="middle" fill="#333" font-size="12" font-weight="700">${d.id}</text>
+    <text x="${W/2}" y="${cy+25}" text-anchor="middle" fill="#333" font-size="12" font-weight="700">${d.nome||d.id}</text>
     <text x="${W/2}" y="${cy+45}" text-anchor="middle" fill="#666" font-size="10">${d.tipo.toUpperCase()}</text>`;
   
   Object.entries(diagramState.elements).forEach(([id,el])=>{
@@ -1289,11 +1322,11 @@ function renderDiagramSVG(d,svg){
     let fill,stroke,label;
     if(type==='cable'){
       fill=el.cable.color+'33';stroke=el.cable.color;
-      label=el.cable.id+' ('+el.cable.total+'FO)';
+      label=el.label||(el.cable.nome||el.cable.id);
     }else if(type==='sub'){
       const COL={cto:'#F59E0B',emenda:'#EF4444',deriv:'#8B5CF6',olt:'#06B6D4'};
       fill=COL[el.sub.tipo]+'33';stroke=COL[el.sub.tipo];
-      label=el.sub.id+(el.sub.splitter?' '+el.sub.splitter:'');
+      label=(el.sub.nome||el.sub.id)+(el.sub.splitter?' '+el.sub.splitter:'');
     }else if(type==='splitter'){
       fill='#e8e0f0';stroke='#8B5CF6';
       label='Splitter 1:'+(el.splitter.ratio||8);
@@ -1379,6 +1412,7 @@ function rmSplitter(idx){
   const d=currentEM;if(!d)return;
   showConf('Remover splitter?','',()=>{d.fibers.splitters.splice(idx,1);initFiberDiag(d);},null,'red');
 }
+
 // ════════════════════════════════════════
 // STATS & LIST
 // ════════════════════════════════════════
@@ -1399,29 +1433,26 @@ function updList(){
   }
 
   let h = '';
-  // Armários primeiro
   armarios.forEach(a => {
     h += `<div class="ei" data-id="${a.id}" onclick="zoomTo('${a.id}')" ondblclick="openFromList('${a.id}')">
       <div class="eid" style="background:${C.armario}"></div>
-      <span class="ein">${a.id}</span>
+      <span class="ein">${a.nome||a.id}</span>
       <span class="eidel" onclick="event.stopPropagation();askRemoveById('${a.id}')">✕</span>
     </div>`;
-    // OLTs vinculadas ao armário
     const childOlts = olts.filter(o => o.parentId === a.id);
     childOlts.forEach(o => {
       h += `<div class="ei" data-id="${o.id}" onclick="zoomTo('${o.id}')" ondblclick="openFromList('${o.id}')"
         style="padding-left:24px;border-left:2px solid #06B6D4">
         <div class="eid" style="background:#06B6D4"></div>
-        <span class="ein">${o.id} <span style="color:var(--text3);font-size:9px">OLT</span></span>
+        <span class="ein">${o.nome||o.id} <span style="color:var(--text3);font-size:9px">OLT</span></span>
         <span class="eidel" onclick="event.stopPropagation();askRemoveById('${o.id}')">✕</span>
       </div>`;
     });
   });
-  // Postes
   postes.forEach(p => {
     h += `<div class="ei" data-id="${p.id}" onclick="zoomTo('${p.id}')" ondblclick="openFromList('${p.id}')">
       <div class="eid" style="background:${C.poste}"></div>
-      <span class="ein">${p.id} <span style="color:var(--text3);font-size:9px">${(p.children||[]).length ? '['+p.children.length+']' : ''}</span></span>
+      <span class="ein">${p.nome||p.id} <span style="color:var(--text3);font-size:9px">${(p.children||[]).length ? '['+p.children.length+']' : ''}</span></span>
       <span class="eidel" onclick="event.stopPropagation();askRemoveById('${p.id}')">✕</span>
     </div>`;
     (p.children||[]).forEach(c => {
@@ -1430,16 +1461,15 @@ function updList(){
       h += `<div class="ei" data-id="${cd.id}" onclick="zoomTo('${cd.id}')" ondblclick="openFromList('${cd.id}')"
         style="padding-left:24px;border-left:2px solid ${C[cd.tipo]||'#888'}">
         <div class="eid" style="background:${C[cd.tipo]||'#888'}"></div>
-        <span class="ein">${cd.id}${sp}</span>
+        <span class="ein">${cd.nome||cd.id}${sp}</span>
         <span class="eidel" onclick="event.stopPropagation();askRemoveById('${cd.id}')">✕</span>
       </div>`;
     });
   });
-  // Cabos
   cabos.forEach(d => {
     h += `<div class="ei" data-id="${d.id}" onclick="zoomTo('${d.id}')" ondblclick="openFromList('${d.id}')">
       <div class="eid" style="background:${d.color}"></div>
-      <span class="ein">${d.id} <span style='color:var(--text3)'>${d.total||''}FO</span></span>
+      <span class="ein">${d.nome||d.id} <span style='color:var(--text3)'>${d.total||''}FO</span></span>
       <span class="eidel" onclick="event.stopPropagation();askRemoveById('${d.id}')">✕</span>
     </div>`;
   });
@@ -1517,11 +1547,11 @@ function parseKML(txt){
       const parts = coords.textContent.trim().split(/\s+/).filter(Boolean);
       if(parts.length === 1){
         const [lng,lat] = parts[0].split(',').map(Number); const nl = name.toLowerCase();
-        if(nl.includes('olt')) addOLT(lat,lng,{nome:name});
+        if(nl.includes('olt')) addSubElement('olt',armarios[0]||addArmario(lat,lng),{nome:name});
         else if(nl.includes('armario')||nl.includes('armário')) addArmario(lat,lng,{nome:name});
-        else if(nl.includes('cto')) addCTO(lat,lng,{nome:name});
-        else if(nl.includes('deriv')) addDeriv(lat,lng,{nome:name});
-        else if(nl.includes('ceo')||nl.includes('emenda')) addEmenda(lat,lng,{nome:name});
+        else if(nl.includes('cto')) addSubElement('cto',postes[0]||addPoste(lat,lng),{nome:name});
+        else if(nl.includes('deriv')) addSubElement('deriv',postes[0]||addPoste(lat,lng),{nome:name});
+        else if(nl.includes('ceo')||nl.includes('emenda')) addSubElement('emenda',postes[0]||addPoste(lat,lng),{nome:name});
         else addPoste(lat,lng,{nome:name});
         bounds.push([lat,lng]); cnt++;
       }else if(parts.length >= 2){
@@ -1563,7 +1593,7 @@ function exportGeoJSON(){
 
 async function exportKMZ(){
   if(typeof JSZip==='undefined'){ alert('JSZip não carregado.'); return; }
-  let k = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>FiberMap Pro v7.1</name>\n`;
+  let k = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>FiberMap Pro v7.2</name>\n`;
   armarios.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
   postes.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
   olts.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
@@ -1584,10 +1614,10 @@ async function exportKMZ(){
 // ════════════════════════════════════════
 // PERSISTÊNCIA (localStorage + JSON)
 // ════════════════════════════════════════
-const PROJECT_STORAGE_KEY = 'fiberMapPro.project.v7.1';
+const PROJECT_STORAGE_KEY = 'fiberMapPro.project.v7.2';
 function buildProjectSnapshot(){
   return {
-    version: 7.1,
+    version: 7.2,
     counters: {pcnt,ctocnt,emcnt,dcnt,cabocnt,oltcnt,armcnt},
     armarios: armarios.map(a=>({id:a.id,num:a.num,lat:a.lat,lng:a.lng,tipo:a.tipo,nome:a.nome,obs:a.obs,capacidade:a.capacidade,children:a.children,fibers:a.fibers})),
     postes: postes.map(p=>({id:p.id,num:p.num,lat:p.lat,lng:p.lng,tipo:p.tipo,nome:p.nome,obs:p.obs,children:p.children,fibers:p.fibers})),
@@ -1605,7 +1635,6 @@ function loadProjectFromLocal(){
     const raw = localStorage.getItem(PROJECT_STORAGE_KEY);
     if(!raw) return false;
     const snap = JSON.parse(raw);
-    // limpar
     armarios.forEach(p=>map.removeLayer(p.marker)); armarios=[];
     postes.forEach(p=>map.removeLayer(p.marker)); postes=[];
     ctos=[]; emendas=[]; derivs=[]; olts=[];
@@ -1628,7 +1657,7 @@ function loadProjectFromLocal(){
 }
 function downloadProjectJSON(){
   const blob = new Blob([JSON.stringify(buildProjectSnapshot(),null,2)],{type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'projeto_fibra_v7.1.json'; a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'projeto_fibra_v7.2.json'; a.click();
 }
 function importProjectFile(evt){
   const file = evt.target.files[0]; if(!file) return; evt.target.value='';
