@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>FiberMap Pro v7.3</title>
+<title>FiberMap Pro v7.4</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#2d333b;
@@ -14,7 +14,7 @@
   --green:#1D9E75;--green2:#0d6b50;--glow:rgba(29,158,117,.18);
   --blue:#3B82F6;--amber:#F59E0B;--red:#EF4444;--purple:#8B5CF6;--cyan:#06B6D4;--magenta:#EC4899;
   --r:6px;--rl:10px;--rxl:14px;
-  --font:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);touch-action:manipulation}
@@ -34,8 +34,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #main{display:flex;flex:1;overflow:hidden}
 #lp{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width .25s,opacity .25s;position:relative}
 #lp.collapsed{width:0;opacity:0;overflow:hidden}
-#lp-toggle{position:absolute;right:-20px;top:50%;transform:translateY(-50%);width:20px;height:48px;background:var(--bg2);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:12px;z-index:10;transition:right .25s;user-select:none}
+#lp-toggle{position:absolute;right:-20px;top:50%;transform:translateY(-50%);width:20px;height:48px;background:var(--bg2);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:12px;z-index:10;transition:right .25s,border-radius .25s;user-select:none}
 #lp.collapsed #lp-toggle{right:0;border-left:1px solid var(--border);border-radius:8px 0 0 8px}
+#lp-toggle:hover{background:var(--bg3);color:#fff;border-color:var(--green)}
 .ps{border-bottom:1px solid var(--border);padding:10px 12px}
 .pt{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono);margin-bottom:8px}
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -73,7 +74,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .gmaps-link{color:#60A5FA;text-decoration:underline;cursor:pointer;font-size:11px;font-family:var(--mono)}
 .gmaps-link:hover{color:#93C5FD}
 
-/* Tooltip de poste */
 .poste-tooltip{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.6)}
 </style>
 </head>
@@ -110,7 +110,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     </div>
     <div id="mw"><div id="map"></div></div>
   </div>
-  <div id="sb"><div>Modo: <span class="sbv" id="sbm">Selecionar</span></div><div>Zoom: <span class="sbv" id="sbz">13</span></div><div>Lat: <span class="sbv" id="sblat">—</span></div><div>Lng: <span class="sbv" id="sblng">—</span></div><div style="margin-left:auto">FiberMap Pro v7.3</div></div>
+  <div id="sb"><div>Modo: <span class="sbv" id="sbm">Selecionar</span></div><div>Zoom: <span class="sbv" id="sbz">13</span></div><div>Lat: <span class="sbv" id="sblat">—</span></div><div>Lng: <span class="sbv" id="sblng">—</span></div><div style="margin-left:auto">FiberMap Pro v7.4</div></div>
 </div>
 <style>
 /* CABLE CREATION MODAL */
@@ -334,7 +334,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ════════════════════════════════════════
-// ABNT NBR 14772 — CORES CORRIGIDAS (v7.3)
+// ABNT NBR 14772 — CORES CORRIGIDAS (v7.4)
 // ════════════════════════════════════════
 const ABNT=[
   {name:'Verde',       hex:'#2E7D32'},  // Fibra 1
@@ -450,7 +450,6 @@ function handleCustomIcon(event){
   const reader=new FileReader();
   reader.onload=function(e){
     customPosteIconUrl=e.target.result;
-    // Reaplica ícone a todos os postes
     postes.forEach(p=>{
       if(p.marker){
         p.marker.setIcon(makePosteIcon(p));
@@ -478,17 +477,41 @@ function makePosteIcon(poste){
     }
     return L.divIcon({
       className:'',
-      html:`<div style="position:relative;display:inline-block">${badges}<img src="${customPosteIconUrl}" style="width:28px;height:28px;border-radius:50%;border:2px solid #3B82F6;object-fit:cover;box-shadow:0 0 8px rgba(0,0,0,.6)"></div>`,
-      iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-14]
+      html:`<div style="position:relative;display:inline-block">${badges}<img src="${customPosteIconUrl}" style="width:48px;height:48px;border-radius:50%;border:2px solid #3B82F6;object-fit:cover;box-shadow:0 0 8px rgba(0,0,0,.6)"></div>`,
+      iconSize:[48,48],iconAnchor:[24,24],popupAnchor:[0,-24]
     });
   }
-  // Ícone padrão
-  return mkIcon('poste',poste.nome||poste.id,poste.children||[]);
+  // Ícone padrão SVG (POSTE PRETO GRANDE)
+  const children=poste.children||[];
+  let badges='';
+  if(children.length){
+    const BADGE_CFG={cto:{l:'C',col:'#F59E0B'},emenda:{l:'E',col:'#EF4444'},deriv:{l:'D',col:'#8B5CF6'}};
+    const counts={};children.forEach(ch=>{counts[ch.tipo]=(counts[ch.tipo]||0)+1;});
+    let bx=0;
+    Object.entries(counts).forEach(([t,n])=>{
+      const bc=BADGE_CFG[t];if(!bc)return;
+      const txt=n>1?`${bc.l}×${n}`:bc.l;
+      badges+=`<div style="position:absolute;top:-9px;left:${bx}px;background:${bc.col};color:#fff;font-size:7px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:1px 3px;border-radius:3px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.5);border:1px solid rgba(0,0,0,.3)">${txt}</div>`;
+      bx+=txt.length*5+8;
+    });
+  }
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="48" height="48">
+    <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="5">
+      <path fill="#000" d="M37 70h6l-2-12h-2z"/>
+      <path d="M40 19v40m12-32H28m0-5v5m24-5v5"/>
+      <rect width="8" height="8" x="24" y="14" fill="#000" rx="4"/>
+      <rect width="8" height="8" x="36" y="10" fill="#000" rx="4"/>
+      <rect width="8" height="8" x="48" y="14" fill="#000" rx="4"/>
+      <path d="M44 31h-8"/>
+    </g>
+  </svg>`;
+  return L.divIcon({
+    className:'',
+    html:`<div style="position:relative;display:inline-block">${badges}${svg}</div>`,
+    iconSize:[48,48],iconAnchor:[24,24],popupAnchor:[0,-24]
+  });
 }
 
-// ════════════════════════════════════════
-// ICONS COM BADGE
-// ════════════════════════════════════════
 function mkIcon(tipo,label,children){
   const C={
     poste:{bg:'#1e3a5f',bd:'#3B82F6',tx:'#60A5FA'},
@@ -499,7 +522,7 @@ function mkIcon(tipo,label,children){
     armario:{bg:'#2a1a2a',bd:'#EC4899',tx:'#EC4899'}
   };
   const c=C[tipo]||{bg:'#222',bd:'#888',tx:'#aaa'};
-  const sz=tipo==='poste'||tipo==='armario'?28:34,fs=label&&label.length>6?7:9,rx=tipo==='armario'?'6px':(tipo==='poste'?'50%':'8px');
+  const sz=tipo==='poste'||tipo==='armario'?48:34,fs=label&&label.length>6?7:9,rx=tipo==='armario'?'6px':(tipo==='poste'?'50%':'8px');
   let badges='';
   if(tipo==='poste'&&children&&children.length){
     const BADGE_CFG={cto:{l:'C',col:'#F59E0B'},emenda:{l:'E',col:'#EF4444'},deriv:{l:'D',col:'#8B5CF6'}};
@@ -533,7 +556,6 @@ function bindPosteTooltip(poste){
   poste.marker.bindTooltip(()=>{
     const children=poste.children||[];
     if(!children.length)return poste.nome||poste.id;
-    // Ordena: emenda > derivação > cto
     const ordem={emenda:1,deriv:2,cto:3};
     const sorted=[...children].sort((a,b)=>(ordem[a.tipo]||99)-(ordem[b.tipo]||99));
     const labels=sorted.map(c=>{
@@ -541,7 +563,7 @@ function bindPosteTooltip(poste){
       return el?(el.nome||el.id):c.id;
     });
     return `<div class="poste-tooltip"><strong>${poste.nome||poste.id}</strong><br>${labels.join('<br>')}</div>`;
-  },{direction:'top',offset:[0,-20]});
+  },{direction:'top',offset:[0,-30]});
 }
 
 // ════════════════════════════════════════
@@ -668,9 +690,7 @@ function selectCableType(id){
   const customSection=document.getElementById('cm-custom-section');
   
   if(id==='custom'){
-    // Mostra seção de personalização
     customSection.style.display='block';
-    // Mantém valores padrão ou já preenchidos
     if(!document.getElementById('cm-grupos').value)document.getElementById('cm-grupos').value=1;
     if(!document.getElementById('cm-fpg').value)document.getElementById('cm-fpg').value=12;
   }else{
@@ -682,7 +702,6 @@ function selectCableType(id){
       document.getElementById('cm-color').value=ct.color;
     }
   }
-  // auto-fill ID se vazio
   const idEl=document.getElementById('cm-id');
   if(!idEl.value){cabocnt++;idEl.value=`Cabo-${String(cabocnt).padStart(2,'0')}`;cabocnt--;}
   updateFiberPreview();
@@ -894,27 +913,27 @@ function cablesNear(d){
 }
 
 // ════════════════════════════════════════
-// CABLE DIRECTION (CORRIGIDA v7.3)
+// CABLE DIRECTION (v7.4: 1º ponto = SAÍDA, último = ENTRADA)
 // ════════════════════════════════════════
 function cableDir(d,c){
-  if(!c.anchorMap) return 'entrada';
+  if(!c.anchorMap) return 'saída';
   const idxs = Object.entries(c.anchorMap)
     .filter(([,id])=>id===d.id)
     .map(([i])=>parseInt(i));
-  if(idxs.length===0) return 'entrada';
+  if(idxs.length===0) return 'saída';
   const idx = Math.min(...idxs);
   const lastIdx = c.points.length-1;
-  if(idx===0) return 'entrada';
-  if(idx===lastIdx) return 'saída';
+  if(idx===0) return 'saída';
+  if(idx===lastIdx) return 'entrada';
   return 'passagem';
 }
 
 function cableLabel(d,c){
   const dir = cableDir(d,c);
   const nomeCabo = c.nome || c.id;
-  if(dir==='entrada') return `${nomeCabo} – entrada`;
   if(dir==='saída') return `${nomeCabo} – saída`;
-  return `${nomeCabo} – passagem`;
+  if(dir==='entrada') return `${nomeCabo} – entrada`;
+  return `${nomeCabo} – entrada/saída`;
 }
 
 // ════════════════════════════════════════
@@ -1316,6 +1335,7 @@ function bindDiagramEvents(d,svg){
     diagramState.dragging={id,startX:e.clientX-rect.left-el.x,startY:e.clientY-rect.top-el.y};
     e.preventDefault();
   });
+  
   svg.addEventListener('mousemove',e=>{
     if(!diagramState.dragging)return;
     const rect=svg.getBoundingClientRect();
@@ -1325,9 +1345,11 @@ function bindDiagramEvents(d,svg){
     d.fibers.diagramPositions[diagramState.dragging.id]={x:el.x,y:el.y,w:el.w,h:el.h};
     renderDiagramSVG(d,svg);
   });
+  
   svg.addEventListener('mouseup',e=>{
     if(diagramState.dragging){diagramState.dragging=null;scheduleAutosave();}
   });
+  
   svg.addEventListener('click',e=>{
     const cl=e.target.closest('.conn-line');
     if(!cl)return;
@@ -1345,10 +1367,28 @@ function addDiagramSplitter(){
   d.fibers.splitters.push({x:300,y:300,ratio});
   initFiberDiag(d);
 }
-function setFiberMode(m){fiberMode=m;fiberDragState=null;document.querySelectorAll('.fcb').forEach(b=>b.classList.remove('af'));const el=document.getElementById('fcb-'+m);if(el)el.classList.add('af');}
-function clearFiberDiag(d){if(!d)return;showConf('Limpar diagrama?','',()=>{d.fibers={connections:[],splitters:[],diagramPositions:{}};initFiberDiag(d);},null,'red');}
-function exportFiberSVG(){const svg=document.getElementById('fiber-svg');if(!svg)return;const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='diagrama.svg';a.click();}
-function rmSplitter(idx){const d=currentEM;if(!d)return;showConf('Remover splitter?','',()=>{d.fibers.splitters.splice(idx,1);initFiberDiag(d);},null,'red');}
+
+function setFiberMode(m){
+  fiberMode=m;fiberDragState=null;
+  document.querySelectorAll('.fcb').forEach(b=>b.classList.remove('af'));
+  const el=document.getElementById('fcb-'+m);if(el)el.classList.add('af');
+}
+
+function clearFiberDiag(d){
+  if(!d)return;
+  showConf('Limpar diagrama?','',()=>{d.fibers={connections:[],splitters:[],diagramPositions:{}};initFiberDiag(d);},null,'red');
+}
+
+function exportFiberSVG(){
+  const svg=document.getElementById('fiber-svg');if(!svg)return;
+  const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='diagrama.svg';a.click();
+}
+
+function rmSplitter(idx){
+  const d=currentEM;if(!d)return;
+  showConf('Remover splitter?','',()=>{d.fibers.splitters.splice(idx,1);initFiberDiag(d);},null,'red');
+}
 
 // ════════════════════════════════════════
 // STATS & LIST
@@ -1360,6 +1400,7 @@ function updStats(){
   const tot=cabos.reduce((s,c)=>s+c.dist,0);
   document.getElementById('cnt-m').textContent=tot>=1000?(tot/1000).toFixed(3)+' km':tot+' m';
 }
+
 function updList(){
   const el=document.getElementById('elist');
   const C={poste:'#3B82F6',cto:'#F59E0B',emenda:'#EF4444',deriv:'#8B5CF6',olt:'#06B6D4',armario:'#EC4899'};
@@ -1381,6 +1422,7 @@ function updList(){
   cabos.forEach(d=>{h+=`<div class="ei" data-id="${d.id}" onclick="zoomTo('${d.id}')" ondblclick="openFromList('${d.id}')"><div class="eid" style="background:${d.color}"></div><span class="ein">${d.nome||d.id} <span style='color:var(--text3)'>${d.total||''}FO</span></span><span class="eidel" onclick="event.stopPropagation();askRemoveById('${d.id}')">✕</span></div>`;});
   el.innerHTML=h;
 }
+
 function zoomTo(id){const d=findById(id);if(!d)return;if(d.tipo==='cabo')map.fitBounds(d.poly.getBounds(),{padding:[40,40]});else map.setView([d.lat,d.lng],17);selectedElem=d;hlElem(d);}
 function openFromList(id){const d=findById(id);if(d)openEmModal(d);}
 function findById(id){return postes.find(p=>p.id===id)||ctos.find(p=>p.id===id)||emendas.find(p=>p.id===id)||derivs.find(p=>p.id===id)||cabos.find(p=>p.id===id)||olts.find(p=>p.id===id)||armarios.find(p=>p.id===id);}
@@ -1432,6 +1474,7 @@ function loadKML(evt){
     r.readAsText(file);
   }
 }
+
 function parseKML(txt){
   try{
     const xml=new DOMParser().parseFromString(txt,'text/xml');
@@ -1486,9 +1529,10 @@ function exportGeoJSON(){
   const blob=new Blob([JSON.stringify({type:'FeatureCollection',features:f},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rede_fibra.geojson';a.click();
 }
+
 async function exportKMZ(){
   if(typeof JSZip==='undefined'){alert('JSZip não carregado.');return;}
-  let k=`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>FiberMap Pro v7.3</name>\n`;
+  let k=`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>FiberMap Pro v7.4</name>\n`;
   armarios.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
   postes.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
   olts.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
@@ -1505,10 +1549,10 @@ async function exportKMZ(){
 // ════════════════════════════════════════
 // PERSISTÊNCIA (localStorage + JSON)
 // ════════════════════════════════════════
-const PROJECT_STORAGE_KEY='fiberMapPro.project.v7.3';
+const PROJECT_STORAGE_KEY='fiberMapPro.project.v7.4';
 function buildProjectSnapshot(){
   return {
-    version:7.3,
+    version:7.4,
     counters:{pcnt,ctocnt,emcnt,dcnt,cabocnt,oltcnt,armcnt},
     armarios:armarios.map(a=>({id:a.id,num:a.num,lat:a.lat,lng:a.lng,tipo:a.tipo,nome:a.nome,obs:a.obs,capacidade:a.capacidade,children:a.children,fibers:a.fibers})),
     postes:postes.map(p=>({id:p.id,num:p.num,lat:p.lat,lng:p.lng,tipo:p.tipo,nome:p.nome,obs:p.obs,children:p.children,fibers:p.fibers})),
@@ -1547,7 +1591,7 @@ function loadProjectFromLocal(){
 }
 function downloadProjectJSON(){
   const blob=new Blob([JSON.stringify(buildProjectSnapshot(),null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='projeto_fibra_v7.3.json';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='projeto_fibra_v7.4.json';a.click();
 }
 function importProjectFile(evt){
   const file=evt.target.files[0];if(!file)return;evt.target.value='';
