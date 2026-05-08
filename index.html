@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>FiberMap Pro v7.4</title>
+<title>FiberMap Pro v7.6</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -20,36 +20,77 @@
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);touch-action:manipulation}
 #app{display:flex;flex-direction:column;height:100vh}
 
+/* ═══════════════ TOPBAR ═══════════════ */
 #topbar{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0d6b50,#161b22);border-bottom:2px solid var(--green);height:52px;flex-shrink:0;padding:0 16px;box-shadow:0 2px 12px rgba(0,0,0,.5);z-index:100}
 #logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700;color:#fff;white-space:nowrap}
 #logo svg{width:24px;height:24px;stroke:#1D9E75}
-.tbg{display:flex;align-items:center;gap:4px;padding:0 8px;border-right:1px solid rgba(255,255,255,.1);flex-shrink:0}
-.tbg:last-child{border-right:none}
-.tb{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--r);border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#ccc;cursor:pointer;font-size:12px;font-family:var(--font);font-weight:500;transition:all .15s;white-space:nowrap}
-.tb:hover{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.4)}
-.tb.act{background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 0 10px var(--glow)}
-.tb.danger:hover{background:rgba(239,68,68,.15);color:var(--red);border-color:var(--red)}
-.tb.exp:hover{background:rgba(59,130,246,.15);color:var(--blue);border-color:var(--blue)}
 
+/* ═══════════════ ÁREA PRINCIPAL ═══════ */
 #main{display:flex;flex:1;overflow:hidden}
-#lp{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width .25s,opacity .25s;position:relative}
-#lp.collapsed{width:0;opacity:0;overflow:hidden}
-#lp-toggle{position:absolute;right:-20px;top:50%;transform:translateY(-50%);width:20px;height:48px;background:var(--bg2);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:12px;z-index:10;transition:right .25s,border-radius .25s;user-select:none}
-#lp.collapsed #lp-toggle{right:0;border-left:1px solid var(--border);border-radius:8px 0 0 8px}
-#lp-toggle:hover{background:var(--bg3);color:#fff;border-color:var(--green)}
-.ps{border-bottom:1px solid var(--border);padding:10px 12px}
-.pt{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono);margin-bottom:8px}
-.sg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.sc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:7px 9px}
+#mw{flex:1;position:relative;z-index:1}
+#map{width:100%;height:100%}
+
+/* ═══════════════ STATUSBAR ═══════════ */
+#sb{height:26px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:14px;font-size:11px;font-family:var(--mono);color:var(--text3);flex-shrink:0;z-index:100}
+.sbv{color:var(--text2)}
+#sbm{color:var(--green);font-weight:600}
+
+/* ═══════════════ BANDEJAS FLUTUANTES ═══════ */
+.tray{
+  position:fixed;display:flex;flex-direction:column;gap:8px;padding:8px;
+  background:rgba(22,27,34,.95);border:1px solid var(--border);border-radius:12px;
+  backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,.4);
+  z-index:500;transition:all .3s ease;
+}
+.tray.right{top:60px;right:12px;width:280px;max-height:calc(100vh - 80px);overflow-y:auto}
+.tray.left{bottom:12px;left:12px;width:240px;max-height:70vh;overflow-y:auto}
+.tray.collapsed{width:48px;height:48px;padding:4px;overflow:hidden}
+.tray.collapsed .tray-body{display:none}
+.tray-toggle{
+  width:40px;height:40px;border-radius:50%;background:var(--green2);border:2px solid var(--green);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:16px;
+  transition:all .2s;box-shadow:0 0 12px rgba(29,158,117,.3);position:absolute;z-index:501;
+}
+.tray.right.collapsed .tray-toggle{right:4px;top:4px}
+.tray.left.collapsed .tray-toggle{left:4px;top:4px}
+.tray-toggle:hover{background:var(--green);box-shadow:0 0 16px var(--glow)}
+.tray-header{display:flex;align-items:center;justify-content:space-between;padding:0 4px 4px 4px}
+.tray-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono)}
+.tray-body{display:flex;flex-direction:column;gap:6px}
+.tray-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tray-btn{
+  display:flex;align-items:center;justify-content:center;gap:4px;padding:10px 12px;
+  border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);
+  cursor:pointer;font-size:11px;font-family:var(--font);font-weight:500;transition:all .15s;text-align:center;
+}
+.tray-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border2)}
+.tray-btn.act{background:var(--green2);color:#fff;border-color:var(--green);box-shadow:0 0 8px var(--glow)}
+.tray-btn.danger{background:rgba(239,68,68,.15);color:#ff6b6b}
+.tray-btn-icon{font-size:14px}
+.tray-btn-label{font-size:9px;line-height:1.2}
+
+/* ═══════════════ PAINEL ESQUERDO ═══════ */
+#lp{position:fixed;bottom:12px;left:12px;width:240px;max-height:70vh;background:rgba(22,27,34,.95);border:1px solid var(--border);border-radius:12px;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,.4);display:flex;flex-direction:column;overflow:hidden;transition:all .25s;z-index:500}
+#lp.collapsed{width:44px;height:44px}
+#lp.collapsed #lp-body{display:none}
+#lp-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+#lp-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono)}
+#lp-toggle{position:absolute;top:4px;right:4px;width:36px;height:36px;border-radius:50%;background:var(--green2);border:2px solid var(--green);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;z-index:501;transition:all .15s}
+#lp-toggle:hover{background:var(--green);box-shadow:0 0 16px var(--glow)}
+#lp-body{flex:1;overflow-y:auto;padding:4px}
+.ps{border-bottom:1px solid var(--border);padding:8px 10px}
+.pt{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono);margin-bottom:6px}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.sc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:5px 8px}
 .sl{font-size:10px;color:var(--text3);font-family:var(--mono)}
-.sv{font-size:17px;font-weight:700;margin-top:2px}
+.sv{font-size:15px;font-weight:700;margin-top:2px}
 .sv.blue{color:var(--blue)}.sv.amber{color:var(--amber)}.sv.red{color:var(--red)}.sv.green{color:var(--green)}
 .sf{grid-column:span 2}
 .li{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);padding:2px 0}
 .ld{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .ll{width:18px;height:3px;border-radius:2px;flex-shrink:0}
 #elw{flex:1;overflow-y:auto}
-.ei{display:flex;align-items:center;gap:7px;padding:6px 12px;cursor:pointer;font-size:11px;color:var(--text2);border-bottom:1px solid rgba(48,54,61,.4);transition:background .1s}
+.ei{display:flex;align-items:center;gap:7px;padding:6px 10px;cursor:pointer;font-size:11px;color:var(--text2);border-bottom:1px solid rgba(48,54,61,.4);transition:background .1s}
 .ei:hover{background:var(--bg3);color:var(--text)}
 .ei.sel{background:var(--green2);color:#fff}
 .eid{width:7px;height:7px;border-radius:50%;flex-shrink:0}
@@ -57,63 +98,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .eidel{color:var(--red);opacity:0;cursor:pointer;padding:0 3px;font-size:13px}
 .ei:hover .eidel{opacity:1}
 
-#mw{flex:1;position:relative}
-#map{width:100%;height:100%}
-#sb{height:26px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:14px;font-size:11px;font-family:var(--mono);color:var(--text3);flex-shrink:0}
-.sbv{color:var(--text2)}
-#sbm{color:var(--green);font-weight:600}
-
-@media (max-width:768px){
-  #topbar{height:44px;padding:0 8px}
-  #topbar .tb{font-size:10px;padding:4px 6px;gap:3px}
-  #lp{width:180px}
-  #lp-toggle{right:-16px;width:16px;height:40px}
-}
-.mobile .tb{padding:8px 12px;font-size:14px}
-.mobile .ei{padding:10px 14px;font-size:13px}
-.gmaps-link{color:#60A5FA;text-decoration:underline;cursor:pointer;font-size:11px;font-family:var(--mono)}
-.gmaps-link:hover{color:#93C5FD}
-
-.poste-tooltip{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.6)}
-</style>
-</head>
-<body>
-<div id="app">
-  <div id="topbar">
-    <div id="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h4M17 12h4M12 3v4M12 17v4"/><path d="M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8"/></svg>FiberMap Pro</div>
-    <div class="tbg">
-      <button class="tb act" id="btn-select" onclick="setMode('select')">↖ Selecionar [S]</button>
-      <button class="tb" id="btn-armario" onclick="setMode('armario')">◻ Armário [A]</button>
-      <button class="tb" id="btn-poste" onclick="setMode('poste')">◉ Poste [P]</button>
-      <button class="tb" id="btn-cabo" onclick="setMode('cabo')">⌇ Cabo [C]</button>
-    </div>
-    <div class="tbg">
-      <button class="tb" onclick="document.getElementById('fkml').click()">↑ KML/KMZ</button>
-      <input type="file" id="fkml" accept=".kml,.kmz" onchange="loadKML(event)">
-    </div>
-    <div class="tbg">
-      <button class="tb exp" onclick="exportGeoJSON()">↓ GeoJSON</button>
-      <button class="tb exp" onclick="exportKMZ()">↓ KMZ</button>
-      <button class="tb exp" onclick="downloadProjectJSON()">↓ Projeto</button>
-      <button class="tb" onclick="document.getElementById('fproj').click()">↑ Projeto</button>
-      <input type="file" id="fproj" accept=".json" onchange="importProjectFile(event)" style="display:none">
-      <button class="tb danger" onclick="askClear()">✕ Limpar</button>
-    </div>
-  </div>
-  <div id="main">
-    <div id="lp">
-      <div id="lp-toggle" onclick="toggleSidebar()" title="Recolher/Expandir">◀</div>
-      <div class="ps"><div class="pt">Estatísticas</div><div class="sg"><div class="sc"><div class="sl">Armários</div><div class="sv" style="color:var(--magenta)" id="cnt-a">0</div></div><div class="sc"><div class="sl">Postes</div><div class="sv blue" id="cnt-p">0</div></div><div class="sc"><div class="sl">Cabos</div><div class="sv" id="cnt-c">0</div></div><div class="sc sf"><div class="sl">Total cabo</div><div class="sv green" id="cnt-m">0 m</div></div></div></div>
-      <div class="ps"><div class="pt">Legenda</div><div class="li"><div class="ld" style="background:#EC4899"></div>Armário</div><div class="li"><div class="ld" style="background:#3B82F6"></div>Poste</div><div class="li"><div class="ll" style="background:#1D9E75"></div>Cabo</div></div>
-      <div class="ps" style="border-bottom:none"><div class="pt">Elementos</div></div>
-      <div id="elw"><div id="elist"></div></div>
-    </div>
-    <div id="mw"><div id="map"></div></div>
-  </div>
-  <div id="sb"><div>Modo: <span class="sbv" id="sbm">Selecionar</span></div><div>Zoom: <span class="sbv" id="sbz">13</span></div><div>Lat: <span class="sbv" id="sblat">—</span></div><div>Lng: <span class="sbv" id="sblng">—</span></div><div style="margin-left:auto">FiberMap Pro v7.4</div></div>
-</div>
-<style>
-/* CABLE CREATION MODAL */
+/* ═══════════════ MODAIS ═══════════════ */
 #cable-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:8000;align-items:center;justify-content:center}
 #cable-overlay.show{display:flex}
 #cable-modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.7)}
@@ -142,7 +127,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .fiber-preview{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px;padding:8px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);min-height:32px}
 .fp-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(0,0,0,.3);cursor:default;position:relative}
 
-/* ELEMENT DETAIL MODAL */
 #em-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center}
 #em-overlay.show{display:flex}
 #em-modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);width:820px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.7);overflow:hidden}
@@ -213,95 +197,106 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
 .leaflet-container{background:#1a1f2e}
 .leaflet-popup-content-wrapper{background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:var(--rl)}
-</style>
 
-<!-- CABLE CREATION MODAL -->
-<div id="cable-overlay">
-  <div id="cable-modal">
-    <div class="cm-hdr">
-      <h2>🔌 Novo Cabo de Fibra</h2>
-      <button class="cm-close" onclick="closeCableModal()">✕</button>
-    </div>
-    <div class="cm-body">
-      <div class="cm-section">
-        <div class="cm-label">Identificação do cabo</div>
-        <input class="cm-input" id="cm-id" placeholder="Ex: Cabo-01, Trecho-A, SpineA-CTO3">
+.poste-tooltip{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+
+@media (max-width:768px){
+  #topbar{height:44px;padding:0 8px}
+  .tray.right{right:4px;top:50px;width:220px}
+  .tray.left{left:4px;bottom:8px;width:200px}
+  #lp{left:4px;bottom:8px;width:200px}
+}
+@media (max-width:480px){
+  .tray.right{width:calc(100vw - 16px);right:8px}
+  .tray.left{width:calc(100vw - 16px);left:8px}
+  #lp{width:calc(100vw - 16px);left:8px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div id="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h4M17 12h4M12 3v4M12 17v4"/><path d="M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8"/></svg>FiberMap Pro</div>
+  </div>
+
+  <div id="main">
+    <div id="mw"><div id="map"></div></div>
+  </div>
+  <div id="sb"><div>Modo: <span class="sbv" id="sbm">Selecionar</span></div><div>Zoom: <span class="sbv" id="sbz">13</span></div><div>Lat: <span class="sbv" id="sblat">—</span></div><div>Lng: <span class="sbv" id="sblng">—</span></div><div style="margin-left:auto">FiberMap Pro v7.5</div></div>
+
+  <!-- BANDEJA DIREITA (Ferramentas) -->
+  <div class="tray right" id="tray-tools">
+    <div class="tray-toggle" onclick="toggleTray('tray-tools')">☰</div>
+    <div class="tray-header"><span class="tray-title">Ferramentas</span></div>
+    <div class="tray-body">
+      <div class="tray-grid">
+        <button class="tray-btn act" id="btn-select" onclick="setMode('select')"><span class="tray-btn-icon">↖</span><span class="tray-btn-label">Selecionar</span></button>
+        <button class="tray-btn" id="btn-armario" onclick="setMode('armario')"><span class="tray-btn-icon">◻</span><span class="tray-btn-label">Armário</span></button>
+        <button class="tray-btn" id="btn-poste" onclick="setMode('poste')"><span class="tray-btn-icon">◉</span><span class="tray-btn-label">Poste</span></button>
+        <button class="tray-btn" id="btn-cabo" onclick="setMode('cabo')"><span class="tray-btn-icon">⌇</span><span class="tray-btn-label">Cabo</span></button>
       </div>
-      <div class="cm-section">
-        <div class="cm-label">Tipo de cabo</div>
-        <div class="cable-type-grid" id="cable-type-grid"></div>
-      </div>
-      <div class="cm-section" id="cm-custom-section" style="display:none">
-        <div class="cm-label">Personalize sua estrutura</div>
-        <div class="cm-row" style="flex-wrap:wrap;gap:10px">
-          <div style="flex:1;min-width:120px">
-            <div class="cm-label">Grupos/Tubos</div>
-            <input class="cm-input" id="cm-grupos" type="number" min="1" max="24" value="1" oninput="updateFiberPreview()">
-          </div>
-          <div style="flex:1;min-width:120px">
-            <div class="cm-label">Fibras por grupo</div>
-            <input class="cm-input" id="cm-fpg" type="number" min="1" max="12" value="12" oninput="updateFiberPreview()">
-          </div>
-          <div style="flex:1;min-width:120px">
-            <div class="cm-label">Estilo</div>
-            <select class="cm-input" id="cm-estilo" onchange="updateFiberPreview()">
-              <option value="conv">Convencional</option>
-              <option value="fig8">Figura 8 (autossustentável)</option>
-              <option value="adss">ADSS</option>
-              <option value="drop">Drop indoor</option>
-              <option value="blind">Blindado</option>
-              <option value="diel">Dielétrico</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="cm-section">
-        <div class="cm-label">Cor no mapa</div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <input type="color" id="cm-color" value="#1D9E75" style="width:40px;height:40px;border-radius:6px" oninput="updateFiberPreview()">
-          <span style="font-size:12px;color:var(--text2)">Clique para escolher a cor do cabo no mapa</span>
-        </div>
-      </div>
-      <div class="cm-section">
-        <div class="cm-label">Preview das fibras (cores ABNT)</div>
-        <div class="fiber-preview" id="fiber-preview"></div>
-        <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:4px" id="fp-count"></div>
+      <div style="border-top:1px solid var(--border);padding-top:6px;margin-top:6px">
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="document.getElementById('fkml').click()">↑ KML/KMZ</button>
+        <input type="file" id="fkml" accept=".kml,.kmz" onchange="loadKML(event)" style="display:none">
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="exportGeoJSON()">↓ GeoJSON</button>
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="exportKMZ()">↓ KMZ</button>
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="downloadProjectJSON()">↓ Projeto</button>
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="document.getElementById('fproj').click()">↑ Projeto</button>
+        <input type="file" id="fproj" accept=".json" onchange="importProjectFile(event)" style="display:none">
+        <button class="tray-btn danger" style="width:100%" onclick="askClear()">✕ Limpar</button>
       </div>
     </div>
-    <div class="cm-footer">
-      <button class="cm-btn" onclick="closeCableModal()">Cancelar</button>
-      <button class="cm-btn primary" onclick="confirmCableModal()">✓ Iniciar traçado do cabo</button>
+  </div>
+
+  <!-- BANDEJA ESQUERDA (Informações) -->
+  <div class="tray left" id="tray-info">
+    <div class="tray-toggle" onclick="toggleTray('tray-info')">📋</div>
+    <div class="tray-header"><span class="tray-title">Informações</span></div>
+    <div class="tray-body">
+      <div class="ps"><div class="pt">Estatísticas</div><div class="sg"><div class="sc"><div class="sl">Armários</div><div class="sv" style="color:var(--magenta)" id="cnt-a">0</div></div><div class="sc"><div class="sl">Postes</div><div class="sv blue" id="cnt-p">0</div></div><div class="sc"><div class="sl">Cabos</div><div class="sv" id="cnt-c">0</div></div><div class="sc sf"><div class="sl">Total cabo</div><div class="sv green" id="cnt-m">0 m</div></div></div></div>
+      <div class="ps"><div class="pt">Legenda</div><div class="li"><div class="ld" style="background:#EC4899"></div>Armário</div><div class="li"><div class="ld" style="background:#3B82F6"></div>Poste</div><div class="li"><div class="ll" style="background:#1D9E75"></div>Cabo</div></div>
+      <div class="ps" style="border-bottom:none"><div class="pt">Elementos</div></div>
+      <div id="elw"><div id="elist"></div></div>
     </div>
   </div>
 </div>
 
-<!-- ELEMENT DETAIL MODAL -->
+<!-- MODALS (CABLE, ELEMENT DETAIL, SUB-ELEMENT, CONFIRM, AVISO EMENDA) -->
+<div id="cable-overlay">
+  <div id="cable-modal">
+    <div class="cm-hdr"><h2>🔌 Novo Cabo de Fibra</h2><button class="cm-close" onclick="closeCableModal()">✕</button></div>
+    <div class="cm-body">
+      <div class="cm-section"><div class="cm-label">Identificação do cabo</div><input class="cm-input" id="cm-id" placeholder="Ex: Cabo-01, Trecho-A, SpineA-CTO3"></div>
+      <div class="cm-section"><div class="cm-label">Tipo de cabo</div><div class="cable-type-grid" id="cable-type-grid"></div></div>
+      <div class="cm-section" id="cm-custom-section" style="display:none">
+        <div class="cm-label">Personalize sua estrutura</div>
+        <div class="cm-row" style="flex-wrap:wrap;gap:10px">
+          <div style="flex:1;min-width:120px"><div class="cm-label">Grupos/Tubos</div><input class="cm-input" id="cm-grupos" type="number" min="1" max="24" value="1" oninput="updateFiberPreview()"></div>
+          <div style="flex:1;min-width:120px"><div class="cm-label">Fibras por grupo</div><input class="cm-input" id="cm-fpg" type="number" min="1" max="12" value="12" oninput="updateFiberPreview()"></div>
+          <div style="flex:1;min-width:120px"><div class="cm-label">Estilo</div><select class="cm-input" id="cm-estilo" onchange="updateFiberPreview()"><option value="conv">Convencional</option><option value="fig8">Figura 8</option><option value="adss">ADSS</option><option value="drop">Drop indoor</option><option value="blind">Blindado</option><option value="diel">Dielétrico</option></select></div>
+        </div>
+      </div>
+      <div class="cm-section"><div class="cm-label">Cor no mapa</div><div style="display:flex;gap:10px;align-items:center"><input type="color" id="cm-color" value="#1D9E75" style="width:40px;height:40px;border-radius:6px" oninput="updateFiberPreview()"><span style="font-size:12px;color:var(--text2)">Clique para escolher a cor do cabo</span></div></div>
+      <div class="cm-section"><div class="cm-label">Preview das fibras (cores ABNT)</div><div class="fiber-preview" id="fiber-preview"></div><div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:4px" id="fp-count"></div></div>
+    </div>
+    <div class="cm-footer"><button class="cm-btn" onclick="closeCableModal()">Cancelar</button><button class="cm-btn primary" onclick="confirmCableModal()">✓ Iniciar traçado do cabo</button></div>
+  </div>
+</div>
+
 <div id="em-overlay">
   <div id="em-modal">
-    <div id="emhdr">
-      <div id="em-icon"></div>
-      <div id="em-ttl"><h2 id="em-h2">Elemento</h2><p id="em-sub">—</p></div>
-      <button id="em-x" onclick="closeEmModal()">✕</button>
-    </div>
+    <div id="emhdr"><div id="em-icon"></div><div id="em-ttl"><h2 id="em-h2">Elemento</h2><p id="em-sub">—</p></div><button id="em-x" onclick="closeEmModal()">✕</button></div>
     <div id="em-tabs"></div>
     <div id="em-body"></div>
   </div>
 </div>
 
-<!-- SUB-ELEMENT MODAL (OLT/CTO/Derivação/Emenda vinculados ao armário ou poste) -->
 <div id="sub-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9500;align-items:center;justify-content:center">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);width:440px;max-width:95vw;box-shadow:0 24px 80px rgba(0,0,0,.7);overflow:hidden">
-    <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border)">
-      <div id="sub-icon"></div>
-      <div style="flex:1">
-        <div id="sub-modal-title" style="font-size:15px;font-weight:700;color:var(--text)">Novo elemento</div>
-        <div id="sub-parent-info" style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px"></div>
-      </div>
-      <button onclick="closeSubModal()" style="width:28px;height:28px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
-    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border)"><div id="sub-icon"></div><div style="flex:1"><div id="sub-modal-title" style="font-size:15px;font-weight:700;color:var(--text)">Novo elemento</div><div id="sub-parent-info" style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px"></div></div><button onclick="closeSubModal()" style="width:28px;height:28px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button></div>
     <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
       <div><div class="cm-label">Identificação</div><input id="sub-nome" class="cm-input" placeholder="Nome ou deixe em branco para auto"></div>
-      <div style="display:flex;gap:10px" id="sub-spec-wrap"><div style="flex:1"><div id="sub-spec-label" class="cm-label">Portas</div><input id="sub-spec-input" class="cm-input" type="number" min="1" max="64" value="8"></div></div>
+      <div style="display:flex;gap:10px"><div style="flex:1"><div id="sub-spec-label" class="cm-label">Portas</div><input id="sub-spec-input" class="cm-input" type="number" min="1" max="64" value="8"></div></div>
       <div id="sub-split-row"><div class="cm-label">Tipo de Splitter</div><div style="display:flex;gap:8px">
         <div id="sub-split-1-8" class="ctb sel" style="flex:1;padding:10px;text-align:center;cursor:pointer" onclick="selectSubSplit('1/8')"><div style="font-size:13px;font-weight:700;color:var(--green);font-family:var(--mono)">1/8</div><div style="font-size:10px;color:var(--text3);margin-top:2px">8 saídas</div></div>
         <div id="sub-split-1-16" class="ctb" style="flex:1;padding:10px;text-align:center;cursor:pointer;border:1px solid var(--border);border-radius:var(--r);background:var(--bg3)" onclick="selectSubSplit('1/16')"><div style="font-size:13px;font-weight:700;color:var(--amber);font-family:var(--mono)">1/16</div><div style="font-size:10px;color:var(--text3);margin-top:2px">16 saídas</div></div>
@@ -309,32 +304,32 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       </div></div>
       <div><div class="cm-label">Observações</div><input id="sub-obs" class="cm-input" placeholder="Opcional"></div>
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 20px 20px">
-      <button class="cm-btn" onclick="closeSubModal()">Cancelar</button>
-      <button class="cm-btn primary" onclick="confirmSubModal()">✓ Criar e vincular</button>
-    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 20px 20px"><button class="cm-btn" onclick="closeSubModal()">Cancelar</button><button class="cm-btn primary" onclick="confirmSubModal()">✓ Criar e vincular</button></div>
   </div>
 </div>
 
-<!-- CONFIRM DIALOG -->
 <div id="conf-overlay">
   <div id="conf-box">
-    <h3 id="conf-ttl">Confirmar</h3>
-    <p id="conf-msg">Tem certeza?</p>
-    <div id="conf-btns">
-      <button class="cfb" onclick="confCancel()">Cancelar</button>
-      <button class="cfb ok" id="conf-ok" onclick="confOk()">Confirmar</button>
-    </div>
+    <h3 id="conf-ttl">Confirmar</h3><p id="conf-msg">Tem certeza?</p>
+    <div id="conf-btns"><button class="cfb" onclick="confCancel()">Cancelar</button><button class="cfb ok" id="conf-ok" onclick="confOk()">Confirmar</button></div>
   </div>
 </div>
 
-<!-- ÍCONE PERSONALIZADO (input oculto) -->
+<div id="emenda-warning-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9700;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--amber);border-radius:var(--rl);padding:24px;max-width:400px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.6)">
+    <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+    <h3 style="margin-bottom:8px;color:var(--amber)">Emenda Necessária</h3>
+    <p style="color:var(--text2);margin-bottom:16px">É necessário criar uma <strong>Emenda</strong> antes de adicionar CTO ou Derivação.</p>
+    <button class="cm-btn primary" onclick="document.getElementById('emenda-warning-overlay').style.display='none'">OK</button>
+  </div>
+</div>
+
 <input type="file" id="custom-icon-input" accept="image/*" style="display:none" onchange="handleCustomIcon(event)">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ════════════════════════════════════════
-// ABNT NBR 14772 — CORES CORRIGIDAS (v7.4)
+// ABNT NBR 14772 — CORES CORRIGIDAS (v7.5)
 // ════════════════════════════════════════
 const ABNT=[
   {name:'Verde',       hex:'#2E7D32'},  // Fibra 1
@@ -383,7 +378,6 @@ let confCb=null,confCancelCb=null,currentEM=null;
 let fiberMode='drag',fiberDragState=null;
 let _subPending={tipo:null,parent:null};
 let diagramState={offsetX:0,offsetY:0,dragging:null,elements:{}};
-let fiberTracing={active:false,startFiber:null,path:[],highlightedElements:[]};
 
 // ════════════════════════════════════════
 // DETECTAR MOBILE
@@ -392,14 +386,12 @@ const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 if(isMobile){document.body.classList.add('mobile');}
 
 // ════════════════════════════════════════
-// TOGGLE SIDEBAR
+// TOGGLE TRAYS
 // ════════════════════════════════════════
-function toggleSidebar(){
-  const lp=document.getElementById('lp');
-  lp.classList.toggle('collapsed');
-  const btn=document.getElementById('lp-toggle');
-  btn.innerHTML=lp.classList.contains('collapsed')?'▶':'◀';
-  setTimeout(()=>{if(map)map.invalidateSize();},250);
+function toggleTray(id){
+  const tray=document.getElementById(id);
+  tray.classList.toggle('collapsed');
+  setTimeout(()=>{if(map)map.invalidateSize();},300);
 }
 
 // ════════════════════════════════════════
@@ -424,6 +416,8 @@ function initMap(){
     }
   });
   map.on('zoomend',()=>document.getElementById('sbz').textContent=map.getZoom());
+  // Garante que o mapa seja redimensionado após iniciar
+  setTimeout(()=>{map.invalidateSize();},100);
 }
 
 // ════════════════════════════════════════
@@ -432,8 +426,8 @@ function initMap(){
 function setMode(m){
   if(drawingCabo&&m!=='cabo')cancelCabo();
   mode=m;
-  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('act'));
-  const b=document.getElementById('btn-'+m);if(b)b.classList.add('act');
+  document.querySelectorAll('.tray-btn.act').forEach(b=>b.classList.remove('act'));
+  const btn=document.getElementById('btn-'+m);if(btn)btn.classList.add('act');
   const LBL={select:'Selecionar',armario:'Adicionar Armário',poste:'Adicionar Poste',cabo:'Cabo — abrir configuração'};
   document.getElementById('sbm').textContent=LBL[m]||m;
   if(m==='cabo')openCableModal();
@@ -450,18 +444,13 @@ function handleCustomIcon(event){
   const reader=new FileReader();
   reader.onload=function(e){
     customPosteIconUrl=e.target.result;
-    postes.forEach(p=>{
-      if(p.marker){
-        p.marker.setIcon(makePosteIcon(p));
-      }
-    });
+    postes.forEach(p=>{if(p.marker)p.marker.setIcon(makePosteIcon(p));});
   };
   reader.readAsDataURL(file);
 }
 
 function makePosteIcon(poste){
   if(customPosteIconUrl){
-    // Ícone personalizado com badge
     const children=poste.children||[];
     let badges='';
     if(children.length){
@@ -481,7 +470,7 @@ function makePosteIcon(poste){
       iconSize:[48,48],iconAnchor:[24,24],popupAnchor:[0,-24]
     });
   }
-  // Ícone padrão SVG (POSTE PRETO GRANDE)
+  // Ícone padrão SVG (lampião)
   const children=poste.children||[];
   let badges='';
   if(children.length){
@@ -495,15 +484,8 @@ function makePosteIcon(poste){
       bx+=txt.length*5+8;
     });
   }
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="48" height="48">
-    <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="5">
-      <path fill="#000" d="M37 70h6l-2-12h-2z"/>
-      <path d="M40 19v40m12-32H28m0-5v5m24-5v5"/>
-      <rect width="8" height="8" x="24" y="14" fill="#000" rx="4"/>
-      <rect width="8" height="8" x="36" y="10" fill="#000" rx="4"/>
-      <rect width="8" height="8" x="48" y="14" fill="#000" rx="4"/>
-      <path d="M44 31h-8"/>
-    </g>
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48">
+    <path fill="#000" d="m7 2l3 7h4l3-7zm6 18h3v2H8v-2h3V10h2z"/>
   </svg>`;
   return L.divIcon({
     className:'',
@@ -668,6 +650,7 @@ function updateAnchoredCabos(poste){
   updStats();
   if(currentEM && currentEM.tipo==='cabo') openEmModal(currentEM);
 }
+
 // ════════════════════════════════════════
 // CABLE MODAL
 // ════════════════════════════════════════
@@ -843,7 +826,6 @@ function calcDist(pts){
   let d=0;for(let i=1;i<pts.length;i++)d+=L.latLng(pts[i-1]).distanceTo(L.latLng(pts[i]));
   return Math.round(d);
 }
-
 // ════════════════════════════════════════
 // ELEM CLICK (sem modo conectar)
 // ════════════════════════════════════════
@@ -894,11 +876,11 @@ function doRemove(d){
     const i=cabos.findIndex(p=>p.id===d.id);
     if(i>=0){map.removeLayer(cabos[i].poly);cabos.splice(i,1);}
   }
-
   if(selectedElem&&selectedElem.id===d.id)selectedElem=null;
   updStats();updList();updCableLegend();closeEmModal();
   scheduleAutosave();
 }
+
 // ════════════════════════════════════════
 // CABLES NEAR ELEMENT
 // ════════════════════════════════════════
@@ -913,7 +895,7 @@ function cablesNear(d){
 }
 
 // ════════════════════════════════════════
-// CABLE DIRECTION (v7.4: 1º ponto = SAÍDA, último = ENTRADA)
+// CABLE DIRECTION (v7.5: 1º ponto = SAÍDA, último = ENTRADA)
 // ════════════════════════════════════════
 function cableDir(d,c){
   if(!c.anchorMap) return 'saída';
@@ -1006,7 +988,8 @@ function openEmModal(d){
   const defs=buildEmTabs(d);
   tabs.innerHTML=defs.map((t,i)=>`<div class="em-tab${i===0?' act':''}" onclick="switchEmTab(${i})">${t.label}</div>`).join('');
   body.innerHTML=defs.map((t,i)=>`<div class="etc${i===0?' act':''}" id="etc-${i}">${t.html}</div>`).join('');
-  if(d.tipo==='poste'||d.tipo==='armario')setTimeout(()=>initFiberDiag(d),80);
+  // Diagrama só para armário (poste agora tem botão dedicado)
+  if(d.tipo==='armario')setTimeout(()=>initFiberDiag(d),80);
 }
 
 function buildEmTabs(d){
@@ -1094,6 +1077,14 @@ function buildEmTabs(d){
       <div class="qab" onclick="quickAdd('emenda',currentEM)"><div class="qai" style="background:#3d1212;border:2px solid #EF4444;color:#FCA5A5">E</div><span class="qal">Nova Emenda</span></div>
       <div class="qab" onclick="quickAdd('deriv',currentEM)"><div class="qai" style="background:#1a2433;border:2px solid #8B5CF6;color:#A78BFA">⑂</div><span class="qal">Derivação</span></div>
     </div></div>`;
+    
+    // Botão Diagrama (abre em nova aba) – apenas se houver emenda vinculada
+    const hasEmenda = (d.children||[]).some(c=>c.tipo==='emenda');
+    if(hasEmenda){
+      ph+=`<div class="pact" style="margin-top:8px">
+        <button class="pab gn" onclick="openDiagramInNewTab('${d.id}')">📊 Diagrama</button>
+      </div>`;
+    }
   }
   
   ph+=`<div class="pact"><button class="pab gn" onclick="saveProps()">✓ Salvar</button><button class="pab rd" onclick="askRemove(currentEM);closeEmModal()">✕ Remover</button></div>`;
@@ -1130,8 +1121,8 @@ function buildEmTabs(d){
   else attSrc.forEach(c=>{const att=calcAtt(c);ah+=`<div class="ac"><div class="ac-t">${c.nome||c.id}</div><div class="ar"><span>Distância</span><span>${c.dist>=1000?(c.dist/1000).toFixed(3)+' km':c.dist+' m'}</span></div><div class="ar"><span>Att. fibra (${ATT.fibra} dB/km)</span><span>${att.af.toFixed(2)} dB</span></div><div class="ar"><span>Emendas CEO (×${att.ec})</span><span>${(att.ec*ATT.emenda).toFixed(2)} dB</span></div>${att.splitterLoss>0?`<div class="ar"><span>Splitters</span><span>${att.splitterLoss.toFixed(1)} dB</span></div>`:''}<div class="ar"><span>Conectores (×2)</span><span>${(ATT.conector*2).toFixed(1)} dB</span></div><div class="ar"><span>Total</span><span style="font-weight:600">${att.tot.toFixed(2)} dB</span></div><div class="ar"><span>Budget</span><span>${ATT.budget} dB</span></div>${att.margin>=5?`<span class="ab ok">OK — ${att.margin.toFixed(1)} dB</span>`:att.margin>=0?`<span class="ab wn">Limite — ${att.margin.toFixed(1)} dB</span>`:`<span class="ab bd">EXCEDE ${Math.abs(att.margin).toFixed(1)} dB</span>`}</div>`;});
   tabs.push({label:'Atenuação',html:ah});
 
-  // TAB: DIAGRAMA FIBRAS (apenas poste e armário)
-  if((d.tipo==='poste'||d.tipo==='armario') && (near.length>0 || (d.children&&d.children.length>0))){
+  // TAB: DIAGRAMA FIBRAS (apenas armário)
+  if(d.tipo==='armario' && (near.length>0 || (d.children&&d.children.length>0))){
     const fh=`<div style="position:relative;height:500px;overflow:hidden;background:#ffffff;border-radius:6px;" id="fcd">
       <div id="fcd-toolbar">
         <button class="fcb af" id="fcb-drag" onclick="setFiberMode('drag')">✋ Mover</button>
@@ -1151,7 +1142,7 @@ function buildEmTabs(d){
 function switchEmTab(i){
   document.querySelectorAll('.em-tab').forEach((t,j)=>t.classList.toggle('act',i===j));
   document.querySelectorAll('.etc').forEach((t,j)=>t.classList.toggle('act',i===j));
-  if(currentEM&&(currentEM.tipo==='poste'||currentEM.tipo==='armario')){
+  if(currentEM&&currentEM.tipo==='armario'){
     const tabs=document.querySelectorAll('.em-tab');
     const lbl=(tabs&&tabs[i]&&tabs[i].textContent)?tabs[i].textContent:'';
     if(lbl.includes('Diagrama'))setTimeout(()=>initFiberDiag(currentEM),60);
@@ -1177,8 +1168,23 @@ function saveProps(){
   const btn=event.target;btn.textContent='✓ Salvo!';setTimeout(()=>btn.textContent='✓ Salvar',1500);
 }
 
+// ════════════════════════════════════════
+// QUICK ADD (com validação de emenda)
+// ════════════════════════════════════════
 function quickAdd(tipo,parentElem){
-  if(tipo==='olt'){openSubElemModal('olt',parentElem);return;}
+  if(tipo==='olt'){
+    openSubElemModal('olt',parentElem);
+    return;
+  }
+  // Para CTO e Derivação, exige Emenda vinculada ao poste
+  if((tipo==='cto'||tipo==='deriv') && parentElem.tipo==='poste'){
+    const hasEmenda = (parentElem.children||[]).some(c=>c.tipo==='emenda');
+    if(!hasEmenda){
+      closeEmModal();
+      document.getElementById('emenda-warning-overlay').style.display='flex';
+      return;
+    }
+  }
   if(tipo==='emenda'){
     closeEmModal();
     const nd=addSubElement('emenda',parentElem);
@@ -1187,6 +1193,78 @@ function quickAdd(tipo,parentElem){
     return;
   }
   openSubElemModal(tipo,parentElem);
+}
+
+// ════════════════════════════════════════
+// ABRIR DIAGRAMA EM NOVA ABA
+// ════════════════════════════════════════
+function openDiagramInNewTab(postId){
+  const d=findById(postId);
+  if(!d)return;
+  const near=cablesNear(d);
+  if(!near.length){
+    alert('Nenhum cabo ancorado para exibir no diagrama.');
+    return;
+  }
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><title>Diagrama - ${d.nome||d.id}</title><style>body{margin:0;background:#fff;}</style></head><body><svg id="fiber-svg" width="100%" height="100%" style="min-height:100vh;"></svg></body></html>`);
+  w.document.close();
+  setTimeout(()=>{
+    const svg=w.document.getElementById('fiber-svg');
+    if(!svg)return;
+    const tempState={elements:{}};
+    const pos=d.fibers?.diagramPositions||{};
+    let x=50,y=50;
+    near.forEach((c,i)=>{
+      const id='cable_'+c.id;
+      const label=cableLabel(d,c);
+      if(!pos[id])pos[id]={x:x,y:y+i*60,w:140,h:40,label:label};
+      tempState.elements[id]={type:'cable',cable:c,...pos[id]};
+    });
+    if((d.children||[]).length){
+      d.children.forEach((ch,i)=>{
+        const sub=findById(ch.id);
+        if(!sub)return;
+        const id='sub_'+sub.id;
+        if(!pos[id])pos[id]={x:300,y:100+i*80,w:100,h:60};
+        tempState.elements[id]={type:'sub',sub:sub,...pos[id]};
+      });
+    }
+    renderDiagramToWindow(d,svg,tempState);
+  },100);
+}
+
+function renderDiagramToWindow(d,svg,state){
+  const W=900,H=700;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  let html=`<defs><marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0L7,3.5L0,7Z" fill="#1D9E75"/></marker></defs><rect width="100%" height="100%" fill="#fff"/>`;
+  const cx=W/2-60,cy=H/2-30;
+  const ecolor='#3B82F6';
+  html+=`<rect x="${cx}" y="${cy}" width="120" height="60" rx="8" fill="${ecolor}22" stroke="${ecolor}" stroke-width="2"/>
+    <text x="${W/2}" y="${cy+25}" text-anchor="middle" fill="#333" font-size="12" font-weight="700">${d.nome||d.id}</text>
+    <text x="${W/2}" y="${cy+45}" text-anchor="middle" fill="#666" font-size="10">POSTE</text>`;
+  Object.entries(state.elements).forEach(([id,el])=>{
+    const {x,y,w,h,type}=el;
+    let fill,stroke,label;
+    if(type==='cable'){
+      fill=el.cable.color+'33';stroke=el.cable.color;
+      label=el.label||(el.cable.nome||el.cable.id);
+    }else if(type==='sub'){
+      const COL={cto:'#F59E0B',emenda:'#EF4444',deriv:'#8B5CF6',olt:'#06B6D4'};
+      fill=COL[el.sub.tipo]+'33';stroke=COL[el.sub.tipo];
+      label=(el.sub.nome||el.sub.id)+(el.sub.splitter?' '+el.sub.splitter:'');
+    }
+    html+=`<g><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2"/>
+      <text x="${x+w/2}" y="${y+20}" text-anchor="middle" fill="#333" font-size="10" font-weight="600">${label}</text></g>`;
+  });
+  if(d.fibers&&d.fibers.connections){
+    d.fibers.connections.forEach(conn=>{
+      const a=abntColor(conn.fromFi);
+      html+=`<path d="M${conn.fromX},${conn.fromY} C${(conn.fromX+conn.toX)/2},${conn.fromY} ${(conn.fromX+conn.toX)/2},${conn.toY} ${conn.toX},${conn.toY}" fill="none" stroke="${a.fiber.hex}" stroke-width="2" marker-end="url(#arr)"/>`;
+      html+=`<text x="${(conn.fromX+conn.toX)/2}" y="${(conn.fromY+conn.toY)/2-5}" text-anchor="middle" fill="${a.fiber.hex}" font-size="7">F${conn.fromFi+1}→F${conn.toFi+1}</text>`;
+    });
+  }
+  svg.innerHTML=html;
 }
 
 // ════════════════════════════════════════
@@ -1240,7 +1318,7 @@ function closeSubModal(){
   _subPending={tipo:null,parent:null};
 }
 // ════════════════════════════════════════
-// DIAGRAMA DE FIBRAS (SISTEMA ARRASTÁVEL)
+// DIAGRAMA DE FIBRAS (sistema arrastável)
 // ════════════════════════════════════════
 function initFiberDiag(d){
   const svg=document.getElementById('fiber-svg');
@@ -1335,7 +1413,6 @@ function bindDiagramEvents(d,svg){
     diagramState.dragging={id,startX:e.clientX-rect.left-el.x,startY:e.clientY-rect.top-el.y};
     e.preventDefault();
   });
-  
   svg.addEventListener('mousemove',e=>{
     if(!diagramState.dragging)return;
     const rect=svg.getBoundingClientRect();
@@ -1345,11 +1422,7 @@ function bindDiagramEvents(d,svg){
     d.fibers.diagramPositions[diagramState.dragging.id]={x:el.x,y:el.y,w:el.w,h:el.h};
     renderDiagramSVG(d,svg);
   });
-  
-  svg.addEventListener('mouseup',e=>{
-    if(diagramState.dragging){diagramState.dragging=null;scheduleAutosave();}
-  });
-  
+  svg.addEventListener('mouseup',e=>{if(diagramState.dragging){diagramState.dragging=null;scheduleAutosave();}});
   svg.addEventListener('click',e=>{
     const cl=e.target.closest('.conn-line');
     if(!cl)return;
@@ -1368,27 +1441,10 @@ function addDiagramSplitter(){
   initFiberDiag(d);
 }
 
-function setFiberMode(m){
-  fiberMode=m;fiberDragState=null;
-  document.querySelectorAll('.fcb').forEach(b=>b.classList.remove('af'));
-  const el=document.getElementById('fcb-'+m);if(el)el.classList.add('af');
-}
-
-function clearFiberDiag(d){
-  if(!d)return;
-  showConf('Limpar diagrama?','',()=>{d.fibers={connections:[],splitters:[],diagramPositions:{}};initFiberDiag(d);},null,'red');
-}
-
-function exportFiberSVG(){
-  const svg=document.getElementById('fiber-svg');if(!svg)return;
-  const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='diagrama.svg';a.click();
-}
-
-function rmSplitter(idx){
-  const d=currentEM;if(!d)return;
-  showConf('Remover splitter?','',()=>{d.fibers.splitters.splice(idx,1);initFiberDiag(d);},null,'red');
-}
+function setFiberMode(m){fiberMode=m;fiberDragState=null;document.querySelectorAll('.fcb').forEach(b=>b.classList.remove('af'));const el=document.getElementById('fcb-'+m);if(el)el.classList.add('af');}
+function clearFiberDiag(d){if(!d)return;showConf('Limpar diagrama?','',()=>{d.fibers={connections:[],splitters:[],diagramPositions:{}};initFiberDiag(d);},null,'red');}
+function exportFiberSVG(){const svg=document.getElementById('fiber-svg');if(!svg)return;const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='diagrama.svg';a.click();}
+function rmSplitter(idx){const d=currentEM;if(!d)return;showConf('Remover splitter?','',()=>{d.fibers.splitters.splice(idx,1);initFiberDiag(d);},null,'red');}
 
 // ════════════════════════════════════════
 // STATS & LIST
@@ -1532,7 +1588,7 @@ function exportGeoJSON(){
 
 async function exportKMZ(){
   if(typeof JSZip==='undefined'){alert('JSZip não carregado.');return;}
-  let k=`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>FiberMap Pro v7.4</name>\n`;
+  let k=`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>FiberMap Pro v7.5</name>\n`;
   armarios.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
   postes.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
   olts.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
@@ -1549,10 +1605,10 @@ async function exportKMZ(){
 // ════════════════════════════════════════
 // PERSISTÊNCIA (localStorage + JSON)
 // ════════════════════════════════════════
-const PROJECT_STORAGE_KEY='fiberMapPro.project.v7.4';
+const PROJECT_STORAGE_KEY='fiberMapPro.project.v7.5';
 function buildProjectSnapshot(){
   return {
-    version:7.4,
+    version:7.5,
     counters:{pcnt,ctocnt,emcnt,dcnt,cabocnt,oltcnt,armcnt},
     armarios:armarios.map(a=>({id:a.id,num:a.num,lat:a.lat,lng:a.lng,tipo:a.tipo,nome:a.nome,obs:a.obs,capacidade:a.capacidade,children:a.children,fibers:a.fibers})),
     postes:postes.map(p=>({id:p.id,num:p.num,lat:p.lat,lng:p.lng,tipo:p.tipo,nome:p.nome,obs:p.obs,children:p.children,fibers:p.fibers})),
@@ -1591,7 +1647,7 @@ function loadProjectFromLocal(){
 }
 function downloadProjectJSON(){
   const blob=new Blob([JSON.stringify(buildProjectSnapshot(),null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='projeto_fibra_v7.4.json';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='projeto_fibra_v7.5.json';a.click();
 }
 function importProjectFile(evt){
   const file=evt.target.files[0];if(!file)return;evt.target.value='';
@@ -1657,12 +1713,6 @@ document.getElementById('em-overlay').addEventListener('click',function(e){if(e.
 document.getElementById('cable-overlay').addEventListener('click',function(e){if(e.target===this)closeCableModal();});
 document.getElementById('conf-overlay').addEventListener('click',function(e){if(e.target===this)confCancel();});
 document.getElementById('sub-overlay').addEventListener('click',function(e){if(e.target===this)closeSubModal();});
-
-// ════════════════════════════════════════
-// FIBER TRACING (mantido simplificado)
-// ════════════════════════════════════════
-function startFiberTracing(caboId,fiberNumber){}
-function clearFiberTracing(){}
 
 // ════════════════════════════════════════
 // INIT
