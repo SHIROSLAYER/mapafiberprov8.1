@@ -3,9 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>FiberMap Pro v7.8</title>
+<title>FiberMap Pro v8.4</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- MarkerCluster CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <style>
 :root{
   --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#2d333b;
@@ -24,6 +27,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #topbar{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0d6b50,#161b22);border-bottom:2px solid var(--green);height:52px;flex-shrink:0;padding:0 16px;box-shadow:0 2px 12px rgba(0,0,0,.5);z-index:100}
 #logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700;color:#fff;white-space:nowrap}
 #logo svg{width:24px;height:24px;stroke:#1D9E75}
+#topbar-right{display:flex;align-items:center;gap:12px}
+.theme-toggle{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--amber);font-size:16px;transition:all .2s}
+.theme-toggle:hover{background:var(--bg4)}
 
 /* MAPA */
 #main{display:flex;flex:1;overflow:hidden}
@@ -34,6 +40,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #sb{height:26px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:14px;font-size:11px;font-family:var(--mono);color:var(--text3);flex-shrink:0;z-index:100}
 .sbv{color:var(--text2)}
 #sbm{color:var(--green);font-weight:600}
+#sb-autosave{color:var(--text3);font-size:10px;margin-left:auto}
 
 /* TOGGLES EXTERNOS */
 .ext-toggle{
@@ -44,8 +51,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   transition:all .2s; box-shadow:0 0 12px rgba(29,158,117,.3);
 }
 .ext-toggle:hover{ background:var(--green); box-shadow:0 0 16px var(--glow); }
-#toggle-tools { top:60px; right:12px; }
-#toggle-info  { bottom:60px; left:12px; } /* movido para cima */
+.ext-toggle.active{ background:var(--green); box-shadow:0 0 16px var(--glow); }
+#toggle-tools  { top:60px; right:12px; }
+#toggle-search { top:60px; right:64px; }
+#toggle-info   { bottom:60px; left:12px; }
 
 /* BANDEJAS */
 .tray{
@@ -55,8 +64,17 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   z-index:1400; transition:all .3s ease; overflow-y:auto;
 }
 .tray.show{ display:flex; }
-.tray.right{ top:116px; right:12px; width:280px; max-height:calc(100vh - 140px); }
-.tray.left { bottom:116px; left:12px; width:240px; max-height:calc(100vh - 180px); } /* margem extra */
+.tray.right     { top:116px; right:12px; width:280px; max-height:calc(100vh - 140px); }
+.tray.search-tray{ top:116px; right:12px; width:300px; max-height:calc(100vh - 140px); }
+.tray.left      { bottom:116px; left:12px; width:240px; max-height:calc(100vh - 180px); }
+
+/* SCROLLBAR CAMUFLADA */
+::-webkit-scrollbar            { width:4px; height:4px; }
+::-webkit-scrollbar-track      { background:transparent; }
+::-webkit-scrollbar-thumb      { background:transparent; border-radius:4px; transition:background .3s; }
+::-webkit-scrollbar-thumb:hover{ background:rgba(139,148,158,.25); }
+*{ scrollbar-width:thin; scrollbar-color:transparent transparent; }
+.tray:hover,::-webkit-scrollbar-thumb:hover{ scrollbar-color:rgba(139,148,158,.2) transparent; }
 
 .tray-header{display:flex;align-items:center;justify-content:space-between;padding:0 4px 4px 4px}
 .tray-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono)}
@@ -94,7 +112,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .eidel{color:var(--red);opacity:0;cursor:pointer;padding:0 3px;font-size:13px}
 .ei:hover .eidel{opacity:1}
 
-/* MODAIS – CSS COMPLETO */
+/* MODAIS – CSS COMPLETO (herdado da v7.8) */
 #cable-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:8000;align-items:center;justify-content:center}
 #cable-overlay.show{display:flex}
 #cable-modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.7)}
@@ -203,35 +221,87 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 }
 .gmaps-link:hover { background: var(--green); }
 
+/* Busca */
+.search-box{display:flex;gap:6px;padding:8px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)}
+.search-box input{flex:1;background:transparent;border:none;color:var(--text);font-size:12px;outline:none;font-family:var(--mono)}
+.search-results{max-height:300px;overflow-y:auto}
+.search-result{padding:8px 10px;cursor:pointer;border-bottom:1px solid rgba(48,54,61,.4);transition:background .15s;font-size:11px;color:var(--text2)}
+.search-result:hover{background:var(--bg4);color:var(--text)}
+
+/* Dashboard */
+.dashboard{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.chart-placeholder{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center;color:var(--text3);font-size:12px}
+
+/* Toast */
+.toast{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:20px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.4);animation:slideUp .3s ease}
+.toast.show{display:block}
+.toast.success{background:var(--green2);color:#fff}
+.toast.warning{background:rgba(245,158,11,.2);color:var(--amber);border:1px solid var(--amber)}
+.toast.error{background:rgba(239,68,68,.2);color:var(--red);border:1px solid var(--red)}
+@keyframes slideUp{from{transform:translateX(-50%) translateY(100px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+
 @media (max-width:768px){
   #topbar{height:44px;padding:0 8px}
   .tray.right{right:4px;top:104px;width:220px}
+  .tray.search-tray{right:4px;top:104px;width:calc(100vw - 76px)}
   .tray.left{left:4px;bottom:108px;width:200px}
   #toggle-tools{right:8px;top:50px}
+  #toggle-search{right:60px;top:50px}
   #toggle-info{left:8px;bottom:50px}
 }
 @media (max-width:480px){
-  .tray.right{width:calc(100vw - 16px);right:8px}
+  .tray.right{width:calc(100vw - 76px);right:8px}
+  .tray.search-tray{width:calc(100vw - 76px);right:8px}
   .tray.left{width:calc(100vw - 16px);left:8px}
 }
+
+/* BUG FIX – dashboard-modal display via .show */
+.modal{display:none}
+.modal.show{display:flex}
+
+/* BUG FIX – Fiber diagram toolbar */
+#fcd-toolbar{
+  display:flex;align-items:center;gap:6px;padding:6px 10px;
+  background:var(--bg3);border-bottom:1px solid var(--border);
+  position:absolute;top:0;left:0;right:0;z-index:10;
+}
+.fcb{
+  padding:5px 10px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--bg4);color:var(--text2);cursor:pointer;font-size:11px;
+  font-family:var(--font);font-weight:500;transition:all .15s;
+}
+.fcb:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.fcb.af{background:var(--green2);color:#fff;border-color:var(--green)}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="topbar">
     <div id="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h4M17 12h4M12 3v4M12 17v4"/><path d="M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8"/></svg>FiberMap Pro</div>
+    <div id="topbar-right">
+      <div class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">☀️</div>
+      <div class="theme-toggle" id="dash-btn" onclick="openDashboard()" title="Dashboard" style="color:var(--cyan)">📊</div>
+    </div>
   </div>
 
   <div id="main">
     <div id="mw"><div id="map"></div></div>
   </div>
-  <div id="sb"><div>Modo: <span class="sbv" id="sbm">Selecionar</span></div><div>Zoom: <span class="sbv" id="sbz">13</span></div><div>Lat: <span class="sbv" id="sblat">—</span></div><div>Lng: <span class="sbv" id="sblng">—</span></div><div style="margin-left:auto">FiberMap Pro v7.6</div></div>
 
-  <!-- TOGGLES EXTERNOS FIXOS -->
+  <div id="sb">
+    <div>Modo: <span class="sbv" id="sbm">Selecionar</span></div>
+    <div>Zoom: <span class="sbv" id="sbz">13</span></div>
+    <div>Lat: <span class="sbv" id="sblat">—</span></div>
+    <div>Lng: <span class="sbv" id="sblng">—</span></div>
+    <div id="sb-autosave">● Sincronizado</div>
+  </div>
+
+  <!-- TOGGLES -->
   <div class="ext-toggle" id="toggle-tools" onclick="toggleTray('tray-tools')">☰</div>
-  <div class="ext-toggle" id="toggle-info"  onclick="toggleTray('tray-info')">📋</div>
+  <div class="ext-toggle" id="toggle-search" onclick="toggleTray('tray-search')">🔍</div>
+  <div class="ext-toggle" id="toggle-info" onclick="toggleTray('tray-info')">📋</div>
 
-  <!-- BANDEJA DIREITA (Ferramentas) -->
+  <!-- BANDEJA FERRAMENTAS -->
   <div class="tray right" id="tray-tools">
     <div class="tray-header"><span class="tray-title">Ferramentas</span></div>
     <div class="tray-body">
@@ -251,6 +321,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         </button>
         <button class="tray-btn" id="btn-cabo" onclick="setMode('cabo')"><span class="tray-btn-icon">⌇</span><span class="tray-btn-label">Cabo</span></button>
       </div>
+      <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="tray-btn" style="flex:1;min-width:60px;font-size:10px;" onclick="undoAction()" title="Ctrl+Z">↶ Desfazer</button>
+          <button class="tray-btn" style="flex:1;min-width:60px;font-size:10px;" onclick="redoAction()" title="Ctrl+Y">↷ Refazer</button>
+        </div>
+      </div>
       <div style="border-top:1px solid var(--border);padding-top:6px;margin-top:6px">
         <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="document.getElementById('fkml').click()">↑ KML/KMZ</button>
         <input type="file" id="fkml" accept=".kml,.kmz" onchange="loadKML(event)" style="display:none">
@@ -264,18 +340,28 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     </div>
   </div>
 
-  <!-- BANDEJA ESQUERDA (Informações) -->
+  <!-- BANDEJA BUSCA -->
+  <div class="tray search-tray" id="tray-search">
+    <div class="tray-header"><span class="tray-title">Buscar</span></div>
+    <div class="tray-body">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Digite para buscar..." onkeyup="performSearch()">
+      </div>
+      <div class="search-results" id="search-results"></div>
+    </div>
+  </div>
+
+  <!-- BANDEJA INFORMAÇÕES -->
   <div class="tray left" id="tray-info">
     <div class="tray-header"><span class="tray-title">Informações</span></div>
     <div class="tray-body">
       <div class="ps"><div class="pt">Estatísticas</div><div class="sg"><div class="sc"><div class="sl">Armários</div><div class="sv" style="color:var(--magenta)" id="cnt-a">0</div></div><div class="sc"><div class="sl">Postes</div><div class="sv blue" id="cnt-p">0</div></div><div class="sc"><div class="sl">Cabos</div><div class="sv" id="cnt-c">0</div></div><div class="sc sf"><div class="sl">Total cabo</div><div class="sv green" id="cnt-m">0 m</div></div></div></div>
-      <div class="ps"><div class="pt">Legenda</div><div class="li"><div class="ld" style="background:#EC4899"></div>Armário</div><div class="li"><div class="ld" style="background:#3B82F6"></div>Poste</div><div class="li"><div class="ll" style="background:#1D9E75"></div>Cabo</div></div>
+      <div class="ps"><div class="pt">Legenda</div><div class="li"><div class="ld" style="background:#EC4899"></div>Armário</div><div class="li"><div class="ld" style="background:#3B82F6"></div>Poste</div><div class="li"><div class="ll" style="background:#1D9E75"></div>Cabo</div><div id="cable-legend"></div></div>
       <div class="ps" style="border-bottom:none"><div class="pt">Elementos</div></div>
       <div id="elw"><div id="elist"></div></div>
     </div>
   </div>
 </div>
-
 <!-- MODAIS (COMPLETOS) -->
 <div id="cable-overlay">
   <div id="cable-modal">
@@ -297,7 +383,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     <div class="cm-footer"><button class="cm-btn" onclick="closeCableModal()">Cancelar</button><button class="cm-btn primary" onclick="confirmCableModal()">✓ Iniciar traçado do cabo</button></div>
   </div>
 </div>
-
 <div id="em-overlay">
   <div id="em-modal">
     <div id="emhdr"><div id="em-icon"></div><div id="em-ttl"><h2 id="em-h2">Elemento</h2><p id="em-sub">—</p></div><button id="em-x" onclick="closeEmModal()">✕</button></div>
@@ -339,12 +424,82 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   </div>
 </div>
 
-<div id="toast" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--green2); color:#fff; padding:8px 20px; border-radius:20px; font-size:14px; font-family:var(--font); z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,.4);"></div>
+<!-- Modal Alterar Cabo -->
+<div id="alterar-cabo-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:8000;align-items:center;justify-content:center">
+  <div id="alterar-cabo-modal" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.7)">
+    <div class="cm-hdr"><h2>✏️ Alterar Cabo</h2><button class="cm-close" onclick="closeAlterarCaboModal()">✕</button></div>
+    <div class="cm-body">
+      <div class="cm-section"><div class="cm-label">Identificação do cabo</div><input class="cm-input" id="alterar-cm-id" placeholder="Ex: Cabo-01"></div>
+      <div class="cm-section"><div class="cm-label">Tipo de cabo</div><div class="cable-type-grid" id="alterar-cable-type-grid"></div></div>
+      <div class="cm-section"><div class="cm-label">Cor no mapa</div><div style="display:flex;gap:10px;align-items:center"><input type="color" id="alterar-cm-color" value="#1D9E75" style="width:40px;height:40px;border-radius:6px"><span style="font-size:12px;color:var(--text2)">Clique para escolher a cor do cabo</span></div></div>
+    </div>
+    <div class="cm-footer"><button class="cm-btn" onclick="closeAlterarCaboModal()">Cancelar</button><button class="cm-btn primary" onclick="confirmAlterarCabo()">✓ Alterar Cabo</button></div>
+  </div>
+</div>
+
+<!-- Dashboard Modal -->
+<div id="dashboard-modal" class="modal" style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:8000;align-items:center;justify-content:center;">
+  <div class="modal-content" style="width:700px;max-height:80vh;">
+    <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+      <h2>📊 Dashboard & Analytics</h2>
+      <button class="modal-close" onclick="closeModal('dashboard-modal')" style="width:28px;height:28px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:16px;">✕</button>
+    </div>
+    <div class="modal-body" id="dashboard-body" style="padding:20px;"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
 
 <input type="file" id="custom-icon-input" accept="image/*" style="display:none" onchange="handleCustomIcon(event)">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- MarkerCluster JS -->
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
+// ═══════════════════ SISTEMA DE UNDO/REDO ═══════════════════
+class StateManager {
+  constructor() {
+    this.undoStack = [];
+    this.redoStack = [];
+    this.maxStates = 50;
+  }
+  pushState(label = 'Ação') {
+    this.redoStack = [];
+    const state = buildProjectSnapshot();
+    state._label = label;
+    this.undoStack.push(state);
+    if (this.undoStack.length > this.maxStates) this.undoStack.shift();
+    updateUndoRedoUI();
+  }
+  undo() {
+    if (this.undoStack.length === 0) return false;
+    const currentState = buildProjectSnapshot();
+    this.redoStack.push(currentState);
+    const prevState = this.undoStack.pop();
+    applyProjectSnapshot(prevState);
+    showToast(`↶ ${prevState._label || 'Ação'}`, 'success');
+    updateUndoRedoUI();
+    return true;
+  }
+  redo() {
+    if (this.redoStack.length === 0) return false;
+    const currentState = buildProjectSnapshot();
+    this.undoStack.push(currentState);
+    const nextState = this.redoStack.pop();
+    applyProjectSnapshot(nextState);
+    showToast(`↷ ${nextState._label || 'Ação'}`, 'success');
+    updateUndoRedoUI();
+    return true;
+  }
+  clear() {
+    this.undoStack = [];
+    this.redoStack = [];
+    updateUndoRedoUI();
+  }
+}
+
+const stateManager = new StateManager();
+
 // ═══════════════════ CONSTANTES E VARIÁVEIS GLOBAIS ═══════════════════
 const ABNT=[
   {name:'Verde',       hex:'#2E7D32'},{name:'Amarelo',     hex:'#F9A825'},
@@ -370,7 +525,7 @@ const CABLE_TYPES=[
 const ATT={fibra:.35,conector:.5,emenda:.1,budget:28};
 const SPLITTER_LOSS={'none':0,'1/8':10.5,'1/16':14.0};
 
-let map, mode='select';
+let map, mode='select', isDarkMode=true;
 let postes=[],ctos=[],emendas=[],derivs=[],cabos=[],connections=[],olts=[],armarios=[];
 let drawingCabo=false,caboPoints=[],caboPolyline=null,tempDots=[],pendingCable=null;
 let connFirst=null,selectedElem=null;
@@ -384,99 +539,75 @@ let diagramState={offsetX:0,offsetY:0,dragging:null,elements:{}};
 const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 if(isMobile)document.body.classList.add('mobile');
 
+// ═══════ GRUPOS DE CLUSTER ═══════
+let clusterPostes, clusterArmarios;
+
+// ═══════ DEBOUNCE PARA UPDLIST ═══════
+let updateListTimeout;
+function debouncedUpdList() {
+  clearTimeout(updateListTimeout);
+  updateListTimeout = setTimeout(updList, 200);
+}
+
 // ═══════ FUNÇÕES AUXILIARES ═══════
-function toggleTray(id){ document.getElementById(id).classList.toggle('show'); setTimeout(()=>{if(map)map.invalidateSize();},300); }
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); }
-
-// ═══════ ÍCONES ═══════
-let customPosteIconUrl=null;
-function handleCustomIcon(event){
-  const file=event.target.files[0]; if(!file)return;
-  const reader=new FileReader();
-  reader.onload=function(e){ customPosteIconUrl=e.target.result; postes.forEach(p=>{if(p.marker)p.marker.setIcon(makePosteIcon(p));}); };
-  reader.readAsDataURL(file);
-}
-
-function makePosteIcon(poste){
-  const size=36;
-  if(customPosteIconUrl){
-    let b=''; const children=poste.children||[];
-    if(children.length){
-      const BADGE_CFG={cto:{l:'C',col:'#F59E0B'},emenda:{l:'E',col:'#EF4444'},deriv:{l:'D',col:'#8B5CF6'}};
-      const counts={}; children.forEach(ch=>{counts[ch.tipo]=(counts[ch.tipo]||0)+1;});
-      let bx=0;
-      Object.entries(counts).forEach(([t,n])=>{
-        const bc=BADGE_CFG[t]; if(!bc)return;
-        const txt=n>1?`${bc.l}×${n}`:bc.l;
-        b+=`<div style="position:absolute;top:-9px;left:${bx}px;background:${bc.col};color:#fff;font-size:7px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:1px 3px;border-radius:3px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.5);border:1px solid rgba(0,0,0,.3)">${txt}</div>`;
-        bx+=txt.length*5+8;
-      });
-    }
-    return L.divIcon({
-      className:'',
-      html:`<div style="position:relative;display:inline-block">${b}<img src="${customPosteIconUrl}" style="width:${size}px;height:${size}px;border-radius:50%;border:2px solid #3B82F6;object-fit:cover;box-shadow:0 0 8px rgba(0,0,0,.6)"></div>`,
-      iconSize:[size,size],iconAnchor:[size/2,size/2],popupAnchor:[0,-size/2]
-    });
-  }
-  const children=poste.children||[]; let b='';
-  if(children.length){
-    const BADGE_CFG={cto:{l:'C',col:'#F59E0B'},emenda:{l:'E',col:'#EF4444'},deriv:{l:'D',col:'#8B5CF6'}};
-    const counts={}; children.forEach(ch=>{counts[ch.tipo]=(counts[ch.tipo]||0)+1;});
-    let bx=0;
-    Object.entries(counts).forEach(([t,n])=>{
-      const bc=BADGE_CFG[t]; if(!bc)return;
-      const txt=n>1?`${bc.l}×${n}`:bc.l;
-      b+=`<div style="position:absolute;top:-9px;left:${bx}px;background:${bc.col};color:#fff;font-size:7px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:1px 3px;border-radius:3px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.5);border:1px solid rgba(0,0,0,.3)">${txt}</div>`;
-      bx+=txt.length*5+8;
-    });
-  }
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}"><path fill="#000000" d="m7 2l3 7h4l3-7zm6 18h3v2H8v-2h3V10h2z"/></svg>`;
-  return L.divIcon({
-    className:'', html:`<div style="position:relative;display:inline-block">${b}${svg}</div>`,
-    iconSize:[size,size],iconAnchor:[size/2,size/2],popupAnchor:[0,-size/2]
-  });
-}
-
-function mkIcon(tipo,label,children){
-  const C={
-    poste:{bg:'#1e3a5f',bd:'#3B82F6',tx:'#60A5FA'},cto:{bg:'#3d2a0a',bd:'#F59E0B',tx:'#FCD34D'},
-    emenda:{bg:'#3d1212',bd:'#EF4444',tx:'#FCA5A5'},deriv:{bg:'#1a2433',bd:'#8B5CF6',tx:'#A78BFA'},
-    olt:{bg:'#0a3a1a',bd:'#06B6D4',tx:'#06B6D4'},armario:{bg:'#2a1a2a',bd:'#EC4899',tx:'#EC4899'}
+function toggleTray(id){
+  const allTrays=['tray-tools','tray-search','tray-info'];
+  const allBtns={
+    'tray-tools':'toggle-tools',
+    'tray-search':'toggle-search',
+    'tray-info':'toggle-info'
   };
-  const c=C[tipo]||{bg:'#222',bd:'#888',tx:'#aaa'};
-  const sz=tipo==='poste'||tipo==='armario'?36:34;
-  const fs=label&&label.length>6?7:9;
-  const rx=tipo==='armario'?'6px':(tipo==='poste'?'50%':'8px');
-  let badges='';
-  if(tipo==='poste'&&children&&children.length){
-    const BADGE_CFG={cto:{l:'C',col:'#F59E0B'},emenda:{l:'E',col:'#EF4444'},deriv:{l:'D',col:'#8B5CF6'}};
-    const counts={}; children.forEach(ch=>{counts[ch.tipo]=(counts[ch.tipo]||0)+1;});
-    let bx=0;
-    Object.entries(counts).forEach(([t,n])=>{
-      const bc=BADGE_CFG[t]; if(!bc)return;
-      const txt=n>1?`${bc.l}×${n}`:bc.l;
-      badges+=`<div style="position:absolute;top:-9px;left:${bx}px;background:${bc.col};color:#fff;font-size:7px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:1px 3px;border-radius:3px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.5);border:1px solid rgba(0,0,0,.3)">${txt}</div>`;
-      bx+=txt.length*5+8;
-    });
-  }
-  if(tipo==='armario'&&children&&children.length){
-    const oltCount=children.filter(ch=>ch.tipo==='olt').length;
-    if(oltCount>0){
-      const txt=oltCount>1?`O×${oltCount}`:'O';
-      badges+=`<div style="position:absolute;top:-9px;left:0px;background:#06B6D4;color:#fff;font-size:7px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:1px 3px;border-radius:3px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.5);border:1px solid rgba(0,0,0,.3)">${txt}</div>`;
+  const target=document.getElementById(id);
+  const willOpen=!target.classList.contains('show');
+
+  allTrays.forEach(t=>{
+    document.getElementById(t).classList.remove('show');
+    const btnId=allBtns[t];
+    if(btnId){const b=document.getElementById(btnId);if(b)b.classList.remove('active');}
+  });
+
+  if(willOpen){
+    target.classList.add('show');
+    const btnId=allBtns[id];
+    if(btnId){const b=document.getElementById(btnId);if(b)b.classList.add('active');}
+    if(id==='tray-search'){
+      setTimeout(()=>{
+        const inp=document.getElementById('search-input');
+        if(inp)inp.focus();
+      },60);
     }
   }
-  let interior;
-  if(tipo==='armario'){
-    interior=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="${sz}" height="${sz}"><g fill="none" stroke="#000000" stroke-width="4"><path stroke-linejoin="round" d="M42 4H6v10h36zm0 15H6v10h36zm0 15H6v10h36z"/><path stroke-linecap="round" d="M21 9h6m-6 15h6m-6 15h6"/></g></svg>`;
-  }else{
-    interior=`<div style="width:${sz}px;height:${sz}px;border-radius:${rx};background:${c.bg};border:2px solid ${c.bd};display:flex;align-items:center;justify-content:center;color:${c.tx};font-size:${fs}px;font-weight:700;font-family:'JetBrains Mono',monospace;box-shadow:0 0 8px rgba(0,0,0,.6)">${label||'?'}</div>`;
-  }
-  return L.divIcon({className:'',html:`<div style="position:relative;display:inline-block">${badges}${interior}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-sz/2]});
-}
 
-function refreshPosteIcon(p){if(p&&p.marker)p.marker.setIcon(makePosteIcon(p));}
-function refreshArmarioIcon(a){if(a&&a.marker)a.marker.setIcon(mkIcon('armario',a.nome||a.id,a.children||[]));}
+  setTimeout(()=>{if(map)map.invalidateSize();},300);
+}
+function showToast(msg, type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+// ═══════ ÍCONES SIMPLIFICADOS ═══════
+const posteIcon = L.divIcon({
+  className: 'poste-icon',
+  html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28"><path fill="#000000" d="m7 2l3 7h4l3-7zm6 18h3v2H8v-2h3V10h2z"/></svg>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  popupAnchor: [0, -14]
+});
+
+const armarioIcon = L.divIcon({
+  className: 'armario-icon',
+  html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="28" height="28"><g fill="none" stroke="#000000" stroke-width="4"><path stroke-linejoin="round" d="M42 4H6v10h36zm0 15H6v10h36zm0 15H6v10h36z"/><path stroke-linecap="round" d="M21 9h6m-6 15h6m-6 15h6"/></g></svg>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  popupAnchor: [0, -14]
+});
+
+function refreshPosteIcon(p){ if(p&&p.marker) p.marker.setIcon(posteIcon); }
+function refreshArmarioIcon(a){ if(a&&a.marker) a.marker.setIcon(armarioIcon); }
 
 function bindPosteTooltip(poste){
   if(!poste.marker)return;
@@ -492,34 +623,55 @@ function bindPosteTooltip(poste){
 
 // ═══════ MAPA ═══════
 function initMap(){
-  map=L.map('map',{zoomControl:false,doubleClickZoom:false}).setView([-15.9,-52.22],13);
-  L.control.zoom({position:'bottomright'}).addTo(map);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:21
+  map = L.map('map', {
+    center: [-15.98, -52.26],
+    zoom: 13,
+    zoomControl: false,
+    doubleClickZoom: false,
+    preferCanvas: true
+  });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 21
   }).addTo(map);
-  map.on('click',onMapClick);
-  map.on('dblclick',onMapDblClick);
-  map.on('mousemove',e=>{
-    document.getElementById('sblat').textContent=e.latlng.lat.toFixed(5);
-    document.getElementById('sblng').textContent=e.latlng.lng.toFixed(5);
-    if(drawingCabo&&caboPoints.length>0){
-      const pts=[...caboPoints,[e.latlng.lat,e.latlng.lng]];
-      if(caboPolyline)map.removeLayer(caboPolyline);
-      caboPolyline=L.polyline(pts,{color:pendingCable?pendingCable.color:'#1D9E75',weight:3,opacity:.7,dashArray:'6,4'}).addTo(map);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  clusterPostes = L.markerClusterGroup({ maxClusterRadius: 50 });
+  clusterArmarios = L.markerClusterGroup({ maxClusterRadius: 50 });
+  map.addLayer(clusterPostes);
+  map.addLayer(clusterArmarios);
+
+  map.on('click', onMapClick);
+  map.on('dblclick', onMapDblClick);
+  map.on('mousemove', e => {
+    document.getElementById('sblat').textContent = e.latlng.lat.toFixed(5);
+    document.getElementById('sblng').textContent = e.latlng.lng.toFixed(5);
+    if(drawingCabo && caboPoints.length > 0) {
+      const pts = [...caboPoints, [e.latlng.lat, e.latlng.lng]];
+      if(caboPolyline) map.removeLayer(caboPolyline);
+      caboPolyline = L.polyline(pts, {
+        color: pendingCable ? pendingCable.color : '#1D9E75',
+        weight: 3,
+        opacity: 0.7,
+        dashArray: '6,4'
+      }).addTo(map);
     }
   });
-  map.on('zoomend',()=>document.getElementById('sbz').textContent=map.getZoom());
-  setTimeout(()=>{map.invalidateSize();},100);
+  map.on('zoomend', () => { document.getElementById('sbz').textContent = map.getZoom(); });
 }
 
 function setMode(m){
-  if(drawingCabo&&m!=='cabo')cancelCabo();
+  if(m==='cabo'){
+    if(!drawingCabo){mode='cabo';openCableModal();}
+    return;
+  }
+  if(drawingCabo)cancelCabo();
   mode=m;
-  document.querySelectorAll('.tray-btn.act').forEach(b=>b.classList.remove('act'));
-  const btn=document.getElementById('btn-'+m);if(btn)btn.classList.add('act');
-  const LBL={select:'Selecionar',armario:'Adicionar Armário',poste:'Adicionar Poste',cabo:'Cabo — abrir configuração'};
-  document.getElementById('sbm').textContent=LBL[m]||m;
-  if(m==='cabo')openCableModal();
+  ['select','poste','cabo','armario'].forEach(id=>{
+    const btn=document.getElementById('btn-'+id);
+    if(btn)btn.classList.toggle('act',id===m);
+  });
+  const labels={select:'Selecionar',poste:'Adicionar Poste',armario:'Adicionar Armário',cabo:'Traçar Cabo'};
+  document.getElementById('sbm').textContent=labels[m]||m;
 }
 </script>
 <script>
@@ -528,27 +680,35 @@ function addArmario(lat,lng,opts={}){
   armcnt++;const num=opts.num||armcnt,id='ARM-'+String(num).padStart(2,'0');
   const nome=opts.nome||`Armário ${num}`;
   const d={id,num,lat,lng,tipo:'armario',nome:nome,capacidade:opts.capacidade||24,obs:opts.obs||'',children:[],fibers:{connections:[],splitters:[],diagramPositions:{}}};
-  const mk=L.marker([lat,lng],{icon:mkIcon('armario',nome,[]),draggable:true}).addTo(map);
-  d.marker=mk;armarios.push(d);
+  const mk = L.marker([lat,lng], {icon: armarioIcon, draggable: true});
+  d.marker = mk;
+  clusterArmarios.addLayer(mk);
+  armarios.push(d);
   mk.on('click',e=>{L.DomEvent.stopPropagation(e);handleElemClick(d);});
   mk.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(d);});
   mk.on('dragstart',()=>{d._pLat=d.lat;d._pLng=d.lng;});
   mk.on('dragend',()=>confirmMove(d));
-  updStats();updList();scheduleAutosave();return d;
+  updStats();debouncedUpdList();scheduleAutosave();
+  if(!opts._restoring) stateManager.pushState('Criar Armário');
+  return d;
 }
 
 function addPoste(lat,lng,opts={}){
   pcnt++;const num=opts.num||pcnt,id='P'+num;
   const nome=opts.nome||`Poste ${num}`;
   const d={id,num,lat,lng,tipo:'poste',nome:nome,obs:opts.obs||'',children:[],fibers:{connections:[],splitters:[],diagramPositions:{}}};
-  const mk=L.marker([lat,lng],{icon:makePosteIcon(d),draggable:true}).addTo(map);
-  d.marker=mk;postes.push(d);
+  const mk = L.marker([lat,lng], {icon: posteIcon, draggable: true});
+  d.marker = mk;
+  clusterPostes.addLayer(mk);
+  postes.push(d);
   bindPosteTooltip(d);
   mk.on('click',e=>{L.DomEvent.stopPropagation(e);handleElemClick(d);});
   mk.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(d);});
   mk.on('dragstart',()=>{d._pLat=d.lat;d._pLng=d.lng;});
   mk.on('dragend',()=>confirmMove(d));
-  updStats();updList();scheduleAutosave();return d;
+  updStats();debouncedUpdList();scheduleAutosave();
+  if(!opts._restoring) stateManager.pushState('Criar Poste');
+  return d;
 }
 
 function addSubElement(tipo,parent,opts={}){
@@ -579,24 +739,21 @@ function addSubElement(tipo,parent,opts={}){
   parent.children.push({tipo,id:d.id});
   if(parent.tipo==='armario')refreshArmarioIcon(parent); else refreshPosteIcon(parent);
   bindPosteTooltip(parent);
-  updStats();updList();scheduleAutosave();
+  updStats();debouncedUpdList();scheduleAutosave();
+  if(!opts._restoring) stateManager.pushState(`Criar ${tipo}`);
   return d;
 }
 
 function confirmMove(d){
   const pos=d.marker.getLatLng();
   const nl=pos.lat,ng=pos.lng;
-  showConf('Mover elemento?',`Confirma o novo posicionamento de <strong>${d.nome||d.id}</strong>?`,
-    ()=>{
-      d.lat=nl;d.lng=ng;
-      updateAnchoredCabos(d);
-      updateConnLines();
-      updStats();
-      scheduleAutosave();
-    },
-    ()=>d.marker.setLatLng([d._pLat,d._pLng]),
-    'gn'
-  );
+  if(Math.abs(nl-d.lat)<0.00001&&Math.abs(ng-d.lng)<0.00001)return;
+  stateManager.pushState(`Mover ${d.nome||d.id}`);
+  d.lat=nl;d.lng=ng;
+  updateAnchoredCabos(d);
+  updateConnLines();
+  updStats();
+  scheduleAutosave();
 }
 
 function updateAnchoredCabos(poste){
@@ -627,17 +784,20 @@ function updateConnLines(){
 
 // ═══════ REMOÇÃO ═══════
 function askRemove(d){
-  showConf('Remover elemento?',`Remove <strong>${d.nome||d.id}</strong> e todas as conexões associadas.`,()=>doRemove(d),null,'red');
+  showConf('Remover elemento?',`Remove <strong>${d.nome||d.id}</strong> e todas as conexões associadas.`,()=>{
+    stateManager.pushState(`Deletar ${d.nome||d.id}`);
+    doRemove(d);
+  },null,'red');
 }
 function doRemove(d){
   if(d.tipo==='armario'){
     [...olts.filter(o=>o.parentId===d.id)].forEach(sub=>doRemove(sub));
     const i=armarios.findIndex(p=>p.id===d.id);
-    if(i>=0){map.removeLayer(armarios[i].marker);armarios.splice(i,1);}
+    if(i>=0){ clusterArmarios.removeLayer(armarios[i].marker); armarios.splice(i,1); }
   }else if(d.tipo==='poste'){
     [...ctos.filter(c=>c.parentId===d.id),...emendas.filter(e=>e.parentId===d.id),...derivs.filter(dv=>dv.parentId===d.id)].forEach(sub=>doRemove(sub));
     const i=postes.findIndex(p=>p.id===d.id);
-    if(i>=0){map.removeLayer(postes[i].marker);postes.splice(i,1);}
+    if(i>=0){ clusterPostes.removeLayer(postes[i].marker); postes.splice(i,1); }
   }else if(d.tipo==='olt'){
     const i=olts.findIndex(p=>p.id===d.id);
     if(i>=0)olts.splice(i,1);
@@ -656,13 +816,14 @@ function doRemove(d){
     if(d.parentId){const parent=postes.find(p=>p.id===d.parentId);if(parent){parent.children=parent.children.filter(c=>c.id!==d.id);refreshPosteIcon(parent);}}
   }else if(d.tipo==='cabo'){
     const i=cabos.findIndex(p=>p.id===d.id);
-    if(i>=0){map.removeLayer(cabos[i].poly);cabos.splice(i,1);}
+    if(i>=0){ map.removeLayer(cabos[i].poly); cabos.splice(i,1); }
   }
-  if(selectedElem&&selectedElem.id===d.id)selectedElem=null;
-  updStats();updList();updCableLegend();closeEmModal();
+  if(selectedElem&&selectedElem.id===d.id) selectedElem=null;
+  updStats();debouncedUpdList();updCableLegend();closeEmModal();
   scheduleAutosave();
 }
-
+</script>
+<script>
 // ═══════ CABOS ═══════
 let selectedCableTypeId='fo-12';
 function buildCableTypeGrid(){
@@ -749,21 +910,33 @@ function highlightAnchorsForCabo(on){
     }
   });
 }
+
+// ═══════ ANCORAGEM CORRIGIDA ═══════
 function anchorCaboToElem(a){
   if(!drawingCabo||!pendingCable)return;
-  caboPoints.push([a.lat,a.lng]);
+  const lat = a.lat, lng = a.lng;
+  caboPoints.push([lat, lng]);
   pendingCable.anchors.push(a.id);
   const color=pendingCable.color||'#1D9E75';
-  const dot=L.circleMarker([a.lat,a.lng],{radius:6,color:color,fillColor:'#fff',fillOpacity:1,weight:3}).addTo(map);
+  const dot=L.circleMarker([lat,lng],{radius:6,color:color,fillColor:'#fff',fillOpacity:1,weight:3}).addTo(map);
   tempDots.push(dot);
   document.getElementById('sbm').textContent=`${pendingCable.id} — ${caboPoints.length} pontos (${pendingCable.anchors.length} âncoras) • Enter=finalizar`;
 }
+
 function onMapClick(e){
   if(mode==='select')return;
   const{lat,lng}=e.latlng;
   if(mode==='cabo'&&drawingCabo){
-    const clicked=anchorables().find(a=>Math.abs(a.lat-lat)<0.000001&&Math.abs(a.lng-lng)<0.000001);
-    if(clicked){anchorCaboToElem(clicked);return;}
+    // Verifica se clicou próximo a um poste/armário (tolerância de 5 metros)
+    const clicked = anchorables().find(a => {
+      const dist = map.distance(L.latLng(lat,lng), L.latLng(a.lat,a.lng));
+      return dist < 5; // 5 metros de tolerância
+    });
+    if(clicked){
+      anchorCaboToElem(clicked);
+      return;
+    }
+    // Ponto livre
     caboPoints.push([lat,lng]);
     const dot=L.circleMarker([lat,lng],{radius:3,color:pendingCable?pendingCable.color:'#1D9E75',fillOpacity:1,weight:1}).addTo(map);
     tempDots.push(dot);
@@ -775,31 +948,102 @@ function onMapClick(e){
 function onMapDblClick(e){
   if(mode==='cabo'&&drawingCabo&&caboPoints.length>=2)finishCabo();
 }
+
+// ═══════ SIMPLIFICAÇÃO QUE PRESERVA ÂNCORAS ═══════
+function simplifyPoints(points, anchorIndices, tolerance) {
+  if (points.length < 3) return points;
+
+  const fixed = new Set(anchorIndices);
+
+  function perpDist(p, a, b) {
+    const area = Math.abs((b[0]-a[0])*(a[1]-p[1]) - (a[0]-p[0])*(b[1]-a[1]));
+    const base = Math.sqrt((b[0]-a[0])**2 + (b[1]-a[1])**2);
+    return base === 0 ? 0 : area / base;
+  }
+
+  function rdp(pts, start, end, tol) {
+    if (end <= start + 1) {
+      const result = [pts[start]];
+      if (end !== start) result.push(pts[end]);
+      return result;
+    }
+    let maxDist = 0, maxIdx = start;
+    const a = pts[start], b = pts[end];
+    for (let i = start + 1; i < end; i++) {
+      if (fixed.has(i)) continue;
+      const dist = perpDist(pts[i], a, b);
+      if (dist > maxDist) { maxDist = dist; maxIdx = i; }
+    }
+    if (maxDist > tol && !fixed.has(maxIdx)) {
+      const left = rdp(pts, start, maxIdx, tol);
+      const right = rdp(pts, maxIdx, end, tol);
+      return left.slice(0, -1).concat(right);
+    }
+    const result = [pts[start]];
+    for (let i = start + 1; i <= end; i++) {
+      if (fixed.has(i) || i === end) result.push(pts[i]);
+    }
+    return result;
+  }
+
+  return rdp(points, 0, points.length - 1, tolerance);
+}
+
 function finishCabo(){
   if(!pendingCable||caboPoints.length<2){cancelCabo();return;}
   cabocnt++;
-  const anchorMap={};
-  if(pendingCable.anchors&&pendingCable.anchors.length){
-    caboPoints.forEach((pt,i)=>{
-      anchorables().forEach(a=>{
-        if(Math.abs(a.lat-pt[0])<0.000001&&Math.abs(a.lng-pt[1])<0.000001) anchorMap[i]=a.id;
+
+  // Índices das âncoras no array caboPoints
+  const anchorIndices = [];
+  if(pendingCable.anchors && pendingCable.anchors.length) {
+    pendingCable.anchors.forEach(anchorId => {
+      const el = anchorables().find(a => a.id === anchorId);
+      if(el) {
+        for(let i = 0; i < caboPoints.length; i++) {
+          const pt = caboPoints[i];
+          if(Math.abs(pt[0] - el.lat) < 0.00001 && Math.abs(pt[1] - el.lng) < 0.00001) {
+            anchorIndices.push(i);
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  // Simplifica pontos, mas preserva âncoras
+  const simplified = simplifyPoints(caboPoints, anchorIndices, 2);
+  const anchorMap = {};
+  if(pendingCable.anchors && pendingCable.anchors.length) {
+    simplified.forEach((pt, i) => {
+      anchorables().forEach(a => {
+        if(Math.abs(a.lat - pt[0]) < 0.00001 && Math.abs(a.lng - pt[1]) < 0.00001) {
+          anchorMap[i] = a.id;
+        }
       });
     });
   }
-  const d={
-    id:pendingCable.id,tipo:'cabo',points:[...caboPoints],
-    grupos:pendingCable.grupos,fpg:pendingCable.fpg,total:pendingCable.total,
-    estilo:pendingCable.estilo,color:pendingCable.color,typeId:pendingCable.typeId,typeName:pendingCable.typeName,
-    dist:calcDist(caboPoints),nome:pendingCable.id,obs:'',anchors:[...pendingCable.anchors],anchorMap,
-    fibers:{connections:[],splitters:[],diagramPositions:{}}
+
+  const d = {
+    id: pendingCable.id, tipo:'cabo', points: [...simplified],
+    grupos: pendingCable.grupos, fpg: pendingCable.fpg, total: pendingCable.total,
+    estilo: pendingCable.estilo, color: pendingCable.color,
+    typeId: pendingCable.typeId, typeName: pendingCable.typeName,
+    dist: calcDist(simplified), nome: pendingCable.id, obs: '',
+    anchors: [...pendingCable.anchors], anchorMap,
+    fibers: { connections:[], splitters:[], diagramPositions:{} }
   };
-  if(caboPolyline)map.removeLayer(caboPolyline);
-  const poly=L.polyline(caboPoints,{color:d.color,weight:4,opacity:.9}).addTo(map);
-  d.poly=poly;cabos.push(d);
-  poly.on('click',e=>{L.DomEvent.stopPropagation(e);selectedElem=d;});
-  poly.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(d);});
-  cleanupCabo();updStats();updList();updCableLegend();scheduleAutosave();
+
+  if(caboPolyline) map.removeLayer(caboPolyline);
+  const poly = L.polyline(simplified, { color: d.color, weight: 4, opacity: .9 }).addTo(map);
+  d.poly = poly; cabos.push(d);
+  poly.on('click', e => { L.DomEvent.stopPropagation(e); selectedElem = d; });
+  poly.on('dblclick', e => { L.DomEvent.stopPropagation(e); openEmModal(d); });
+
+  cleanupCabo();
+  updStats(); debouncedUpdList(); updCableLegend(); scheduleAutosave();
+  stateManager.pushState(`Criar Cabo ${d.id}`);
 }
+
 function cancelCabo(){cleanupCabo();if(mode==='cabo')setMode('select');}
 function cleanupCabo(){
   highlightAnchorsForCabo(false);
@@ -993,6 +1237,15 @@ function buildEmTabs(d){
     ph+=`<div class="pact"><button class="pab gn" onclick="saveProps()">✓ Salvar</button><button class="pab rd" onclick="askRemove(currentEM);closeEmModal()">✕ Remover</button>`;
     if(hasEmenda) ph+=`<button class="pab gn" onclick="openDiagramInNewTab('${d.id}')" style="margin-left:auto">📊 Diagrama</button>`;
     ph+=`</div>`;
+  } else if(d.tipo === 'cabo') {
+    // Botão Alterar para cabos
+    ph += `<div class="pact" style="justify-content:space-between;">
+        <div style="display:flex;gap:8px;">
+            <button class="pab gn" onclick="saveProps()">✓ Salvar</button>
+            <button class="pab rd" onclick="askRemove(currentEM);closeEmModal()">✕ Remover</button>
+        </div>
+        <button class="pab gn" onclick="openAlterarCaboModal(currentEM)">✏️ Alterar</button>
+    </div>`;
   } else {
     ph+=`<div class="pact"><button class="pab gn" onclick="saveProps()">✓ Salvar</button><button class="pab rd" onclick="askRemove(currentEM);closeEmModal()">✕ Remover</button></div>`;
   }
@@ -1081,8 +1334,83 @@ function saveProps(){
   if(d.tipo==='poste')refreshPosteIcon(d);
   if(d.tipo==='armario')refreshArmarioIcon(d);
   bindPosteTooltip(d);
-  updList();scheduleAutosave();
+  debouncedUpdList();scheduleAutosave();
+  stateManager.pushState(`Editar ${d.nome||d.id}`);
   const btn=event.target; btn.textContent='✓ Salvo!'; setTimeout(()=>btn.textContent='✓ Salvar',1500);
+}
+
+// ═══════ ALTERAR CABO ═══════
+let _caboParaAlterar = null;
+
+function openAlterarCaboModal(d) {
+  _caboParaAlterar = d;
+  closeEmModal();
+
+  document.getElementById('alterar-cm-id').value = d.nome || d.id;
+  document.getElementById('alterar-cm-color').value = d.color;
+
+  const grid = document.getElementById('alterar-cable-type-grid');
+  grid.innerHTML = CABLE_TYPES.map(ct => `
+    <div class="ctb" data-id="${ct.id}" onclick="selectAlterarCableType('${ct.id}')">
+      <div class="ctb-name" style="color:${ct.color}">${ct.name}</div>
+      <div class="ctb-desc">${ct.desc}</div>
+    </div>`).join('');
+
+  const currentTypeId = d.typeId || 'fo-12';
+  document.querySelectorAll('#alterar-cable-type-grid .ctb').forEach(b => {
+    b.classList.toggle('sel', b.dataset.id === currentTypeId);
+  });
+
+  document.getElementById('alterar-cabo-overlay').style.display = 'flex';
+}
+
+function selectAlterarCableType(id) {
+  document.querySelectorAll('#alterar-cable-type-grid .ctb').forEach(b => {
+    b.classList.toggle('sel', b.dataset.id === id);
+  });
+}
+
+function closeAlterarCaboModal() {
+  document.getElementById('alterar-cabo-overlay').style.display = 'none';
+  _caboParaAlterar = null;
+  if(currentEM) openEmModal(currentEM);
+}
+
+function confirmAlterarCabo() {
+  if(!_caboParaAlterar) return;
+  const d = _caboParaAlterar;
+
+  const novoNome = document.getElementById('alterar-cm-id').value.trim();
+  const novaCor = document.getElementById('alterar-cm-color').value;
+
+  const selected = document.querySelector('#alterar-cable-type-grid .ctb.sel');
+  let typeId = selected ? selected.dataset.id : 'fo-12';
+  const ct = CABLE_TYPES.find(c => c.id === typeId) || CABLE_TYPES[1];
+
+  d.nome = novoNome || d.id;
+  d.color = novaCor;
+  d.typeId = typeId;
+  d.typeName = ct.name;
+  d.grupos = ct.grupos;
+  d.fpg = ct.fpg;
+  d.total = ct.grupos * ct.fpg;
+  d.estilo = ct.estilo;
+
+  // Remove diagrama de fibras e conexões do cabo
+  d.fibers = { connections:[], splitters:[], diagramPositions:{} };
+
+  if(d.poly) {
+    d.poly.setStyle({ color: novaCor });
+  }
+
+  updCableLegend();
+  closeAlterarCaboModal();
+  document.getElementById('alterar-cabo-overlay').style.display = 'none';
+  _caboParaAlterar = null;
+
+  showToast('✓ Cabo alterado com sucesso', 'success');
+  scheduleAutosave();
+  stateManager.pushState(`Alterar ${d.nome || d.id}`);
 }
 </script>
 <script>
@@ -1139,8 +1467,9 @@ function openSubElemModal(tipo,parentElem){
 }
 
 function selectSubSplit(val){
-  ['1/8','1/16','none'].forEach(v=>{
-    const el=document.getElementById('sub-split-'+v);
+  const idMap={'1/8':'sub-split-1-8','1/16':'sub-split-1-16','none':'sub-split-none'};
+  Object.keys(idMap).forEach(v=>{
+    const el=document.getElementById(idMap[v]);
     if(el) el.classList.toggle('sel', v===val);
   });
   const specInput=document.getElementById('sub-spec-input');
@@ -1163,7 +1492,7 @@ function confirmSubModal(){
   const nd=addSubElement(tipo,parent,{nome:nome||undefined,obs:obs||undefined,portas:spec,capacidade:spec,splitter:splitterRatio});
   closeSubModal();
   map.setView([nd.lat,nd.lng],18);
-  updList();
+  debouncedUpdList();
   openEmModal(parent);
 }
 
@@ -1407,13 +1736,14 @@ function confCancel(){document.getElementById('conf-overlay').classList.remove('
 // ═══════ LIMPAR / IMPORTAÇÃO / EXPORTAÇÃO / PERSISTÊNCIA ═══════
 function askClear(){
   showConf('Limpar tudo?','Remove todos os elementos, cabos e conexões.',()=>{
-    armarios.forEach(p=>map.removeLayer(p.marker));armarios=[];
-    postes.forEach(p=>map.removeLayer(p.marker));postes=[];
+    stateManager.pushState('Limpar Tudo');
+    armarios.forEach(p=>clusterArmarios.removeLayer(p.marker));armarios=[];
+    postes.forEach(p=>clusterPostes.removeLayer(p.marker));postes=[];
     ctos=[];emendas=[];derivs=[];olts=[];
     cabos.forEach(c=>map.removeLayer(c.poly));cabos=[];
     connections.forEach(c=>map.removeLayer(c.line));connections=[];
     cleanupCabo();pcnt=0;ctocnt=0;emcnt=0;dcnt=0;cabocnt=0;oltcnt=0;armcnt=0;selectedElem=null;
-    updStats();updList();updCableLegend();saveProjectToLocal();
+    updStats();debouncedUpdList();updCableLegend();saveProjectToLocal();
   });
 }
 
@@ -1442,12 +1772,12 @@ function parseKML(txt){
       const parts=coords.textContent.trim().split(/\s+/).filter(Boolean);
       if(parts.length===1){
         const[lng,lat]=parts[0].split(',').map(Number);const nl=name.toLowerCase();
-        if(nl.includes('olt'))addSubElement('olt',armarios[0]||addArmario(lat,lng),{nome:name});
-        else if(nl.includes('armario')||nl.includes('armário'))addArmario(lat,lng,{nome:name});
-        else if(nl.includes('cto'))addSubElement('cto',postes[0]||addPoste(lat,lng),{nome:name});
-        else if(nl.includes('deriv'))addSubElement('deriv',postes[0]||addPoste(lat,lng),{nome:name});
-        else if(nl.includes('ceo')||nl.includes('emenda'))addSubElement('emenda',postes[0]||addPoste(lat,lng),{nome:name});
-        else addPoste(lat,lng,{nome:name});
+        if(nl.includes('olt'))addSubElement('olt',armarios[0]||addArmario(lat,lng),{nome:name,_restoring:true});
+        else if(nl.includes('armario')||nl.includes('armário'))addArmario(lat,lng,{nome:name,_restoring:true});
+        else if(nl.includes('cto'))addSubElement('cto',postes[0]||addPoste(lat,lng),{nome:name,_restoring:true});
+        else if(nl.includes('deriv'))addSubElement('deriv',postes[0]||addPoste(lat,lng),{nome:name,_restoring:true});
+        else if(nl.includes('ceo')||nl.includes('emenda'))addSubElement('emenda',postes[0]||addPoste(lat,lng),{nome:name,_restoring:true});
+        else addPoste(lat,lng,{nome:name,_restoring:true});
         bounds.push([lat,lng]);cnt++;
       }else if(parts.length>=2){
         const pts=parts.map(p=>{const c=p.split(',');return[parseFloat(c[1]),parseFloat(c[0])];});
@@ -1464,8 +1794,8 @@ function parseKML(txt){
       }
     });
     if(bounds.length)map.fitBounds(L.latLngBounds(bounds),{padding:[40,40]});
-    updStats();updList();updCableLegend();scheduleAutosave();
-    alert(`Importado! ${cnt} elementos carregados.`);
+    updStats();debouncedUpdList();updCableLegend();scheduleAutosave();
+    showToast(`Importado! ${cnt} elementos carregados.`);
   }catch(er){alert('Erro KML:\n'+er.message);}
 }
 
@@ -1485,7 +1815,7 @@ function exportGeoJSON(){
 
 async function exportKMZ(){
   if(typeof JSZip==='undefined'){alert('JSZip não carregado.');return;}
-  let k=`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>FiberMap Pro v7.6</name>\n`;
+  let k=`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>FiberMap Pro v8.1</name>\n`;
   armarios.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
   postes.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
   olts.forEach(p=>k+=`<Placemark><name>${p.nome}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>\n`);
@@ -1499,10 +1829,10 @@ async function exportKMZ(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rede_fibra.kmz';a.click();URL.revokeObjectURL(a.href);
 }
 
-const PROJECT_STORAGE_KEY='fiberMapPro.project.v7.6';
+const PROJECT_STORAGE_KEY='fibermap.v8.project';
 function buildProjectSnapshot(){
   return {
-    version:7.6,
+    version:8.1,
     counters:{pcnt,ctocnt,emcnt,dcnt,cabocnt,oltcnt,armcnt},
     armarios:armarios.map(a=>({id:a.id,num:a.num,lat:a.lat,lng:a.lng,tipo:a.tipo,nome:a.nome,obs:a.obs,capacidade:a.capacidade,children:a.children,fibers:a.fibers})),
     postes:postes.map(p=>({id:p.id,num:p.num,lat:p.lat,lng:p.lng,tipo:p.tipo,nome:p.nome,obs:p.obs,children:p.children,fibers:p.fibers})),
@@ -1520,64 +1850,136 @@ function loadProjectFromLocal(){
     const raw=localStorage.getItem(PROJECT_STORAGE_KEY);
     if(!raw)return false;
     const snap=JSON.parse(raw);
-    armarios.forEach(p=>map.removeLayer(p.marker));armarios=[];
-    postes.forEach(p=>map.removeLayer(p.marker));postes=[];
+    clusterPostes.clearLayers(); clusterArmarios.clearLayers();
+    armarios.forEach(p=>clusterArmarios.removeLayer(p.marker));armarios=[];
+    postes.forEach(p=>clusterPostes.removeLayer(p.marker));postes=[];
     ctos=[];emendas=[];derivs=[];olts=[];
     cabos.forEach(c=>map.removeLayer(c.poly));cabos=[];
     connections.forEach(c=>map.removeLayer(c.line));connections=[];
     cleanupCabo();
     pcnt=snap.counters.pcnt;ctocnt=snap.counters.ctocnt;emcnt=snap.counters.emcnt;dcnt=snap.counters.dcnt;cabocnt=snap.counters.cabocnt;oltcnt=snap.counters.oltcnt;armcnt=snap.counters.armcnt;
-    (snap.armarios||[]).forEach(a=>{const d=addArmario(a.lat,a.lng,{num:a.num,nome:a.nome,obs:a.obs,capacidade:a.capacidade});d.children=a.children||[];d.fibers=a.fibers||{connections:[],splitters:[],diagramPositions:{}};refreshArmarioIcon(d);});
-    (snap.postes||[]).forEach(p=>{const d=addPoste(p.lat,p.lng,{num:p.num,nome:p.nome,obs:p.obs});d.children=p.children||[];d.fibers=p.fibers||{connections:[],splitters:[],diagramPositions:{}};refreshPosteIcon(d);});
+    (snap.armarios||[]).forEach(a=>{const d=addArmario(a.lat,a.lng,{num:a.num,nome:a.nome,obs:a.obs,capacidade:a.capacidade,_restoring:true});d.children=a.children||[];d.fibers=a.fibers||{connections:[],splitters:[],diagramPositions:{}};refreshArmarioIcon(d);});
+    (snap.postes||[]).forEach(p=>{const d=addPoste(p.lat,p.lng,{num:p.num,nome:p.nome,obs:p.obs,_restoring:true});d.children=p.children||[];d.fibers=p.fibers||{connections:[],splitters:[],diagramPositions:{}};refreshPosteIcon(d);});
     (snap.olts||[]).forEach(o=>{oltcnt=Math.max(oltcnt,o.num);const d={...o,fibers:o.fibers||{connections:[],diagramPositions:{}}};olts.push(d);if(d.parentId){const parent=armarios.find(p=>p.id===d.parentId);if(parent){if(!parent.children)parent.children=[];parent.children.push({tipo:'olt',id:d.id});refreshArmarioIcon(parent);}}});
     (snap.ctos||[]).forEach(c=>{ctocnt=Math.max(ctocnt,c.num);const d={...c,fibers:c.fibers||{connections:[],splitters:[],diagramPositions:{}}};ctos.push(d);if(d.parentId){const parent=postes.find(p=>p.id===d.parentId);if(parent){if(!parent.children)parent.children=[];parent.children.push({tipo:'cto',id:d.id});refreshPosteIcon(parent);}}});
     (snap.emendas||[]).forEach(c=>{emcnt=Math.max(emcnt,c.num);const d={...c,fibers:c.fibers||{connections:[],splitters:[],diagramPositions:{}}};emendas.push(d);if(d.parentId){const parent=postes.find(p=>p.id===d.parentId);if(parent){if(!parent.children)parent.children=[];parent.children.push({tipo:'emenda',id:d.id});refreshPosteIcon(parent);}}});
     (snap.derivs||[]).forEach(c=>{dcnt=Math.max(dcnt,c.num);const d={...c,fibers:c.fibers||{connections:[],splitters:[],diagramPositions:{}}};derivs.push(d);if(d.parentId){const parent=postes.find(p=>p.id===d.parentId);if(parent){if(!parent.children)parent.children=[];parent.children.push({tipo:'deriv',id:d.id});refreshPosteIcon(parent);}}});
     (snap.cabos||[]).forEach(c=>{const poly=L.polyline(c.points,{color:c.color,weight:4,opacity:.9}).addTo(map);const dd={...c,fibers:c.fibers||{connections:[],splitters:[],diagramPositions:{}},poly};cabos.push(dd);poly.on('click',e=>{L.DomEvent.stopPropagation(e);selectedElem=dd;});poly.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(dd);});});
     (snap.connections||[]).forEach(cc=>{const a=findById(cc.aId),b=findById(cc.bId);if(a&&b){const line=L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:'#8b949e',weight:1.5,dashArray:'6,4',opacity:.7}).addTo(map);connections.push({a,b,line});}});
-    updStats();updList();updCableLegend();
+    updStats();debouncedUpdList();updCableLegend();
     return true;
   }catch(e){return false;}
 }
 function downloadProjectJSON(){
   const blob=new Blob([JSON.stringify(buildProjectSnapshot(),null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='projeto_fibra_v7.6.json';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='projeto_v8.json';a.click();
 }
 function importProjectFile(evt){
   const file=evt.target.files[0];if(!file)return;evt.target.value='';
   const r=new FileReader();
-  r.onload=e=>{try{const snap=JSON.parse(e.target.result);applyProjectSnapshot(snap);saveProjectToLocal();}catch(er){alert('Erro no arquivo.');}};
+  r.onload=e=>{try{const snap=JSON.parse(e.target.result);applyProjectSnapshot(snap);saveProjectToLocal();showToast('✓ Projeto importado','success');}catch(er){showToast('✗ Erro ao importar','error');}};
   r.readAsText(file);
 }
 function applyProjectSnapshot(snap){
-  armarios.forEach(p=>map.removeLayer(p.marker));armarios=[];
-  postes.forEach(p=>map.removeLayer(p.marker));postes=[];
+  clusterPostes.clearLayers(); clusterArmarios.clearLayers();
+  armarios.forEach(p=>clusterArmarios.removeLayer(p.marker));armarios=[];
+  postes.forEach(p=>clusterPostes.removeLayer(p.marker));postes=[];
   ctos=[];emendas=[];derivs=[];olts=[];
   cabos.forEach(c=>map.removeLayer(c.poly));cabos=[];
   connections.forEach(c=>map.removeLayer(c.line));connections=[];
   cleanupCabo();
   pcnt=snap.counters.pcnt;ctocnt=snap.counters.ctocnt;emcnt=snap.counters.emcnt;dcnt=snap.counters.dcnt;cabocnt=snap.counters.cabocnt;oltcnt=snap.counters.oltcnt;armcnt=snap.counters.armcnt;
-  (snap.armarios||[]).forEach(a=>{const d=addArmario(a.lat,a.lng,{num:a.num,nome:a.nome,obs:a.obs,capacidade:a.capacidade});d.children=a.children||[];d.fibers=a.fibers||{connections:[],splitters:[],diagramPositions:{}};refreshArmarioIcon(d);});
-  (snap.postes||[]).forEach(p=>{const d=addPoste(p.lat,p.lng,{num:p.num,nome:p.nome,obs:p.obs});d.children=p.children||[];d.fibers=p.fibers||{connections:[],splitters:[],diagramPositions:{}};refreshPosteIcon(d);});
+  (snap.armarios||[]).forEach(a=>{const d=addArmario(a.lat,a.lng,{num:a.num,nome:a.nome,obs:a.obs,capacidade:a.capacidade,_restoring:true});d.children=a.children||[];d.fibers=a.fibers||{connections:[],splitters:[],diagramPositions:{}};refreshArmarioIcon(d);});
+  (snap.postes||[]).forEach(p=>{const d=addPoste(p.lat,p.lng,{num:p.num,nome:p.nome,obs:p.obs,_restoring:true});d.children=p.children||[];d.fibers=p.fibers||{connections:[],splitters:[],diagramPositions:{}};refreshPosteIcon(d);});
   (snap.olts||[]).forEach(o=>{oltcnt=Math.max(oltcnt,o.num);const d={...o,fibers:o.fibers||{connections:[],diagramPositions:{}}};olts.push(d);if(d.parentId){const parent=armarios.find(p=>p.id===d.parentId);if(parent){if(!parent.children)parent.children=[];parent.children.push({tipo:'olt',id:d.id});refreshArmarioIcon(parent);}}});
   (snap.ctos||[]).forEach(c=>{ctocnt=Math.max(ctocnt,c.num);const d={...c,fibers:c.fibers||{connections:[],splitters:[],diagramPositions:{}}};ctos.push(d);if(d.parentId){const parent=postes.find(p=>p.id===d.parentId);if(parent){if(!parent.children)parent.children=[];parent.children.push({tipo:'cto',id:d.id});refreshPosteIcon(parent);}}});
   (snap.emendas||[]).forEach(c=>{emcnt=Math.max(emcnt,c.num);const d={...c,fibers:c.fibers||{connections:[],splitters:[],diagramPositions:{}}};emendas.push(d);if(d.parentId){const parent=postes.find(p=>p.id===d.parentId);if(parent){if(!parent.children)parent.children=[];parent.children.push({tipo:'emenda',id:d.id});refreshPosteIcon(parent);}}});
   (snap.derivs||[]).forEach(c=>{dcnt=Math.max(dcnt,c.num);const d={...c,fibers:c.fibers||{connections:[],splitters:[],diagramPositions:{}}};derivs.push(d);if(d.parentId){const parent=postes.find(p=>p.id===d.parentId);if(parent){if(!parent.children)parent.children=[];parent.children.push({tipo:'deriv',id:d.id});refreshPosteIcon(parent);}}});
   (snap.cabos||[]).forEach(c=>{const poly=L.polyline(c.points,{color:c.color,weight:4,opacity:.9}).addTo(map);const dd={...c,fibers:c.fibers||{connections:[],splitters:[],diagramPositions:{}},poly};cabos.push(dd);poly.on('click',e=>{L.DomEvent.stopPropagation(e);selectedElem=dd;});poly.on('dblclick',e=>{L.DomEvent.stopPropagation(e);openEmModal(dd);});});
   (snap.connections||[]).forEach(cc=>{const a=findById(cc.aId),b=findById(cc.bId);if(a&&b){const line=L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:'#8b949e',weight:1.5,dashArray:'6,4',opacity:.7}).addTo(map);connections.push({a,b,line});}});
-  updStats();updList();updCableLegend();
+  updStats();debouncedUpdList();updCableLegend();
 }
+
+// ═══════ TEMA, BUSCA, DASHBOARD, UNDO/REDO, AUTOSAVE ═══════
+function toggleTheme() {
+  isDarkMode = !isDarkMode;
+  document.documentElement.style.filter = isDarkMode ? '' : 'invert(0.9) hue-rotate(180deg)';
+  document.getElementById('theme-toggle').textContent = isDarkMode ? '☀️' : '🌙';
+  localStorage.setItem('fibermap-theme', isDarkMode ? 'dark' : 'light');
+  showToast(`Modo ${isDarkMode ? 'escuro' : 'claro'}`, 'success');
+}
+
+function performSearch() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  if(!q) { document.getElementById('search-results').innerHTML = ''; return; }
+  const results = [];
+  [...armarios, ...postes, ...ctos, ...emendas, ...derivs, ...cabos, ...olts].forEach(el => {
+    if((el.nome && el.nome.toLowerCase().includes(q)) || el.id.toLowerCase().includes(q)) results.push(el);
+  });
+  let html = '';
+  results.slice(0, 15).forEach(r => {
+    const cor = {armario:'#EC4899',poste:'#3B82F6',cto:'#F59E0B',emenda:'#EF4444',deriv:'#8B5CF6',cabo:'#1D9E75',olt:'#06B6D4'}[r.tipo]||'#888';
+    html += `<div class="search-result" onclick="zoomAndSelect('${r.id}')"><span style="color:${cor};font-weight:700">${r.tipo}</span> · ${r.nome||r.id}</div>`;
+  });
+  if(results.length > 15) html += `<div class="search-result" style="text-align:center;color:var(--text3);">+${results.length-15} mais...</div>`;
+  document.getElementById('search-results').innerHTML = html || '<div class="search-result" style="color:var(--text3);">Nenhum resultado</div>';
+}
+
+function zoomAndSelect(id) {
+  const d = findById(id);
+  if(!d) return;
+  if(d.tipo === 'cabo') map.fitBounds(d.poly.getBounds(), {padding:[40,40]});
+  else map.setView([d.lat, d.lng], 17);
+  selectedElem = d;
+  hlElem(d);
+  setTimeout(() => openEmModal(d), 200);
+}
+
+function openDashboard() {
+  const totalDist = cabos.reduce((s,c)=>s+c.dist,0);
+  let html = `
+    <div class="dashboard">
+      <div class="chart-placeholder"><div style="font-size:16px;font-weight:700;color:var(--magenta)">${armarios.length}</div><div style="font-size:11px;color:var(--text3)">Armários</div></div>
+      <div class="chart-placeholder"><div style="font-size:16px;font-weight:700;color:var(--blue)">${postes.length}</div><div style="font-size:11px;color:var(--text3)">Postes</div></div>
+      <div class="chart-placeholder"><div style="font-size:16px;font-weight:700;color:var(--green)">${cabos.length}</div><div style="font-size:11px;color:var(--text3)">Cabos</div></div>
+      <div class="chart-placeholder"><div style="font-size:16px;font-weight:700;color:var(--cyan)">${(totalDist/1000).toFixed(2)}</div><div style="font-size:11px;color:var(--text3)">km Total</div></div>
+    </div>
+    <div style="margin-top:16px;padding:12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);">
+      <div style="font-weight:700;margin-bottom:8px;color:var(--text)">Resumo Técnico</div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);line-height:1.6;">
+        <div>OLTs: ${olts.length}</div><div>CTOs: ${ctos.length}</div><div>Emendas: ${emendas.length}</div>
+      </div>
+    </div>`;
+  document.getElementById('dashboard-body').innerHTML = html;
+  openModal('dashboard-modal');
+}
+
+function updateUndoRedoUI() {}
+function undoAction() { if(stateManager.undo()) { updStats(); debouncedUpdList(); } }
+function redoAction() { if(stateManager.redo()) { updStats(); debouncedUpdList(); } }
+
 let autosaveTimer;
-function scheduleAutosave(){clearTimeout(autosaveTimer);autosaveTimer=setTimeout(saveProjectToLocal,600);}
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  document.getElementById('sb-autosave').textContent = '● Salvando...';
+  autosaveTimer = setTimeout(() => {
+    saveProjectToLocal();
+    document.getElementById('sb-autosave').textContent = '● Sincronizado';
+  }, 800);
+}
 
 // ═══════ KEYBOARD ═══════
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){ e.preventDefault(); undoAction(); }
+  if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='Z'))){ e.preventDefault(); redoAction(); }
   if(e.key==='Escape'){
     if(document.getElementById('em-overlay').classList.contains('show')){closeEmModal();return;}
     if(document.getElementById('sub-overlay').style.display==='flex'){closeSubModal();return;}
     if(document.getElementById('cable-overlay').classList.contains('show')){closeCableModal();return;}
     if(document.getElementById('conf-overlay').classList.contains('show')){confCancel();return;}
+    if(document.getElementById('dashboard-modal').classList.contains('show')){closeModal('dashboard-modal');return;}
+    if(document.getElementById('alterar-cabo-overlay').style.display==='flex'){closeAlterarCaboModal();return;}
     if(drawingCabo)cancelCabo();
     return;
   }
@@ -1597,20 +1999,25 @@ document.addEventListener('keydown',e=>{
   }
   const km={s:'select',p:'poste',c:'cabo',a:'armario'};
   if(km[e.key]){setMode(km[e.key]);return;}
-  if(e.key==='Enter'&&drawingCabo&&caboPoints.length>=2){finishCabo();return;}
+  if(e.key==='Enter'&&drawingCabo&&caboPoints.length>=2){finishCabo();}
   if((e.key==='Delete')&&selectedElem){e.preventDefault();askRemove(selectedElem);}
 });
 
+// Fechar modais ao clicar fora
 document.getElementById('em-overlay').addEventListener('click',function(e){if(e.target===this)closeEmModal();});
 document.getElementById('cable-overlay').addEventListener('click',function(e){if(e.target===this)closeCableModal();});
 document.getElementById('conf-overlay').addEventListener('click',function(e){if(e.target===this)confCancel();});
 document.getElementById('sub-overlay').addEventListener('click',function(e){if(e.target===this)closeSubModal();});
+document.getElementById('dashboard-modal').addEventListener('click',function(e){if(e.target===this)closeModal('dashboard-modal');});
+document.getElementById('alterar-cabo-overlay').addEventListener('click',function(e){if(e.target===this)closeAlterarCaboModal();});
 
 // ═══════ INICIALIZAÇÃO ═══════
 window.addEventListener('load',()=>{
+  const savedTheme = localStorage.getItem('fibermap-theme');
+  if(savedTheme === 'light') toggleTheme();
   initMap();
   buildCableTypeGrid();
-  if(!loadProjectFromLocal()){updStats();updList();}
+  if(!loadProjectFromLocal()){updStats();debouncedUpdList();}
   updCableLegend();
   setTimeout(()=>{try{map.invalidateSize(true);}catch(_){}},80);
 });
