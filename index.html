@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0d6b50">
+<title>FiberMap Pro v8.5</title>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- MarkerCluster CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Estilos do app -->
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div id="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h4M17 12h4M12 3v4M12 17v4"/><path d="M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8"/></svg>FiberMap Pro</div>
+    <div id="topbar-right">
+      <div class="geo-btn" id="geo-btn" onclick="toggleGeolocation()" title="Minha posição">📍</div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="mw"><div id="map"></div></div>
+  </div>
+
+  <div id="sb">
+    <div>Modo: <span class="sbv" id="sbm">Selecionar</span></div>
+    <div>Zoom: <span class="sbv" id="sbz">13</span></div>
+    <div class="sb-coord">Lat: <span class="sbv" id="sblat">—</span></div>
+    <div class="sb-coord">Lng: <span class="sbv" id="sblng">—</span></div>
+    <div id="sb-autosave">● Sincronizado</div>
+  </div>
+
+  <!-- TOGGLES -->
+  <div class="ext-toggle" id="toggle-tools" onclick="toggleTray('tray-tools')">☰</div>
+  <div class="ext-toggle" id="toggle-search" onclick="toggleTray('tray-search')">🔍</div>
+  <div class="ext-toggle" id="toggle-info" onclick="toggleTray('tray-info')">📋</div>
+
+  <!-- BANDEJA FERRAMENTAS -->
+  <div class="tray right" id="tray-tools">
+    <div class="tray-header"><span class="tray-title">Ferramentas</span></div>
+    <div class="tray-body">
+      <div class="tray-grid">
+        <button class="tray-btn tb-tool act" id="btn-select" onclick="setMode('select')"><span class="tray-btn-icon">↖</span><span class="tray-btn-label">Selecionar</span></button>
+        <button class="tray-btn tb-tool" id="btn-armario" onclick="setMode('armario')"><span class="tray-btn-icon">🗄️</span><span class="tray-btn-label">Armário</span></button>
+        <button class="tray-btn tb-tool" id="btn-poste" onclick="setMode('poste')"><span class="tray-btn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 2l3 7h4l3-7M13 20h3v2H8v-2h3V10h2z"/></svg></span><span class="tray-btn-label">Poste</span></button>
+        <button class="tray-btn tb-tool" id="btn-cabo" onclick="setMode('cabo')"><span class="tray-btn-icon">⌇</span><span class="tray-btn-label">Cabo</span></button>
+        <button class="tray-btn tb-tool" id="btn-medida" onclick="setMode('medida')" title="Tecla M"><span class="tray-btn-icon">📏</span><span class="tray-btn-label">Medir</span></button>
+        <button class="tray-btn tb-tool" id="btn-historico" onclick="toggleHistoryPanel()" title="Histórico de ações"><span class="tray-btn-icon">🕐</span><span class="tray-btn-label">Histórico</span></button>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="tray-btn" style="flex:1;min-width:60px;font-size:10px;" onclick="undoAction()" title="Ctrl+Z">↶ Desfazer</button>
+          <button class="tray-btn" style="flex:1;min-width:60px;font-size:10px;" onclick="redoAction()" title="Ctrl+Y">↷ Refazer</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:6px;margin-top:6px">
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="document.getElementById('fkml').click()">↑ KML/KMZ</button>
+        <input type="file" id="fkml" accept=".kml,.kmz" onchange="loadKML(event)" style="display:none">
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="document.getElementById('fcsv').click()">↑ CSV Postes/Armários</button>
+        <input type="file" id="fcsv" accept=".csv,.txt" onchange="loadCSV(event)" style="display:none">
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="exportGeoJSON()">↓ GeoJSON</button>
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="exportKMZ()">↓ KMZ</button>
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="downloadProjectJSON()">↓ Projeto</button>
+        <button class="tray-btn" style="width:100%;margin-bottom:4px" onclick="document.getElementById('fproj').click()">↑ Projeto</button>
+        <input type="file" id="fproj" accept=".json" onchange="importProjectFile(event)" style="display:none">
+        <button class="tray-btn danger" style="width:100%" onclick="askClear()">✕ Limpar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANDEJA BUSCA -->
+  <div class="tray search-tray" id="tray-search">
+    <div class="tray-header"><span class="tray-title">Buscar</span></div>
+    <div class="tray-body">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Digite para buscar..." onkeyup="performSearch()">
+      </div>
+      <div class="search-results" id="search-results"></div>
+    </div>
+  </div>
+
+  <!-- BANDEJA INFORMAÇÕES -->
+  <div class="tray left" id="tray-info">
+    <div class="tray-header"><span class="tray-title">Informações</span></div>
+    <div class="tray-body">
+      <div class="ps"><div class="pt">Estatísticas</div><div class="sg"><div class="sc"><div class="sl">Armários</div><div class="sv" style="color:var(--magenta)" id="cnt-a">0</div></div><div class="sc"><div class="sl">Postes</div><div class="sv blue" id="cnt-p">0</div></div><div class="sc"><div class="sl">Cabos</div><div class="sv" id="cnt-c">0</div></div><div class="sc sf"><div class="sl">Total cabo</div><div class="sv green" id="cnt-m">0 m</div></div></div></div>
+      <div class="ps"><div class="pt">Legenda</div><div class="li"><div class="ld" style="background:#EC4899"></div>Armário</div><div class="li"><div class="ld" style="background:#3B82F6"></div>Poste</div><div class="li"><div class="ll" style="background:#1D9E75"></div>Cabo</div><div id="cable-legend"></div></div>
+      <div class="ps" style="border-bottom:none"><div class="pt">Elementos</div></div>
+      <div id="elw"><div id="elist"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAIS ═══════════════ -->
+
+<!-- Modal Cabo -->
+<div id="cable-overlay">
+  <div id="cable-modal">
+    <div class="cm-hdr"><h2 id="cm-modal-title">🔌 Novo Cabo de Fibra</h2><button class="cm-close" onclick="closeCableModal()">✕</button></div>
+    <div class="cm-body">
+      <div class="cm-section"><div class="cm-label" id="cm-id-label">Identificação do cabo</div><input class="cm-input" id="cm-id" placeholder="Ex: Cabo-01, Trecho-A, SpineA-CTO3"></div>
+      <div class="cm-section"><div class="cm-label">Tipo de cabo</div><div class="cable-type-grid" id="cable-type-grid"></div></div>
+      <div class="cm-section" id="cm-custom-section" style="display:none">
+        <div class="cm-label">Personalize sua estrutura</div>
+        <div class="cm-row" style="flex-wrap:wrap;gap:10px">
+          <div style="flex:1;min-width:120px"><div class="cm-label">Grupos/Tubos</div><input class="cm-input" id="cm-grupos" type="number" min="1" max="24" value="1" oninput="updateFiberPreview()"></div>
+          <div style="flex:1;min-width:120px"><div class="cm-label">Fibras por grupo</div><input class="cm-input" id="cm-fpg" type="number" min="1" max="12" value="12" oninput="updateFiberPreview()"></div>
+          <div style="flex:1;min-width:120px"><div class="cm-label">Estilo</div><select class="cm-input" id="cm-estilo" onchange="updateFiberPreview()"><option value="conv">Convencional</option><option value="fig8">Figura 8</option><option value="adss">ADSS</option><option value="drop">Drop indoor</option><option value="blind">Blindado</option><option value="diel">Dielétrico</option></select></div>
+        </div>
+      </div>
+      <div class="cm-section"><div class="cm-label">Cor no mapa</div><div style="display:flex;gap:10px;align-items:center"><input type="color" id="cm-color" value="#1D9E75" style="width:40px;height:40px;border-radius:6px" oninput="updateFiberPreview()"><span style="font-size:12px;color:var(--text2)">Clique para escolher a cor do cabo</span></div></div>
+      <div id="cm-recent-colors" class="cm-section" style="display:none;padding-top:0;margin-top:-6px"></div>
+      <div class="cm-section"><div class="cm-label">Preview das fibras (cores ABNT)</div><div class="fiber-preview" id="fiber-preview"></div><div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:4px" id="fp-count"></div></div>
+    </div>
+    <div class="cm-footer"><button class="cm-btn" onclick="closeCableModal()">Cancelar</button><button class="cm-btn primary" id="cm-confirm-btn" onclick="confirmCableModal()">✓ Iniciar traçado do cabo</button></div>
+  </div>
+</div>
+
+<!-- Modal Elemento -->
+<div id="em-overlay">
+  <div id="em-modal">
+    <div id="emhdr"><div id="em-icon"></div><div id="em-ttl"><h2 id="em-h2">Elemento</h2><p id="em-sub">—</p></div><button id="em-x" onclick="closeEmModal()">✕</button></div>
+    <div id="em-tabs"></div>
+    <div id="em-body"></div>
+  </div>
+</div>
+
+<!-- Modal Sub-elemento -->
+<div id="sub-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9500;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);width:440px;max-width:95vw;box-shadow:0 24px 80px rgba(0,0,0,.7);overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border)"><div id="sub-icon"></div><div style="flex:1"><div id="sub-modal-title" style="font-size:15px;font-weight:700;color:var(--text)">Novo elemento</div><div id="sub-parent-info" style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px"></div></div><button onclick="closeSubModal()" style="width:28px;height:28px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button></div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div><div class="cm-label">Identificação</div><input id="sub-nome" class="cm-input" placeholder="Nome ou deixe em branco para auto"></div>
+      <div style="display:flex;gap:10px"><div style="flex:1"><div id="sub-spec-label" class="cm-label">Portas</div><input id="sub-spec-input" class="cm-input" type="number" min="1" max="64" value="8"></div></div>
+      <div id="sub-split-row"><div class="cm-label">Tipo de Splitter</div><div style="display:flex;gap:8px">
+        <div id="sub-split-1-8" class="ctb sel" style="flex:1;padding:10px;text-align:center;cursor:pointer" onclick="selectSubSplit('1/8')"><div style="font-size:13px;font-weight:700;color:var(--green);font-family:var(--mono)">1/8</div><div style="font-size:10px;color:var(--text3);margin-top:2px">8 saídas</div></div>
+        <div id="sub-split-1-16" class="ctb" style="flex:1;padding:10px;text-align:center;cursor:pointer" onclick="selectSubSplit('1/16')"><div style="font-size:13px;font-weight:700;color:var(--amber);font-family:var(--mono)">1/16</div><div style="font-size:10px;color:var(--text3);margin-top:2px">16 saídas</div></div>
+        <div id="sub-split-none" class="ctb" style="flex:1;padding:10px;text-align:center;cursor:pointer" onclick="selectSubSplit('none')"><div style="font-size:13px;font-weight:700;color:var(--text2);font-family:var(--mono)">—</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Sem splitter</div></div>
+      </div></div>
+      <div><div class="cm-label">Observações</div><input id="sub-obs" class="cm-input" placeholder="Opcional"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 20px 20px"><button class="cm-btn" onclick="closeSubModal()">Cancelar</button><button class="cm-btn primary" onclick="confirmSubModal()">✓ Criar e vincular</button></div>
+  </div>
+</div>
+
+<!-- Modal Confirmação -->
+<div id="conf-overlay">
+  <div id="conf-box">
+    <h3 id="conf-ttl">Confirmar</h3><p id="conf-msg">Tem certeza?</p>
+    <div id="conf-btns"><button class="cfb" onclick="confCancel()">Cancelar</button><button class="cfb ok" id="conf-ok" onclick="confOk()">Confirmar</button></div>
+  </div>
+</div>
+
+<!-- Aviso Emenda -->
+<div id="emenda-warning-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9700;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--amber);border-radius:var(--rl);padding:24px;width:min(400px,92vw);text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.6)">
+    <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+    <h3 style="margin-bottom:8px;color:var(--amber)">Emenda Necessária</h3>
+    <p style="color:var(--text2);margin-bottom:16px">É necessário criar uma <strong>Emenda</strong> antes de adicionar CTO ou Derivação.</p>
+    <button class="cm-btn primary" id="btn-emenda-warning-ok">OK</button>
+  </div>
+</div>
+
+<!-- Modal Alterar Cabo -->
+<div id="alterar-cabo-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:8000;align-items:center;justify-content:center">
+  <div id="alterar-cabo-modal" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.7)">
+    <div class="cm-hdr"><h2>✏️ Alterar Cabo</h2><button class="cm-close" onclick="closeAlterarCaboModal()">✕</button></div>
+    <div class="cm-body">
+      <div class="cm-section"><div class="cm-label">Identificação do cabo</div><input class="cm-input" id="alterar-cm-id" placeholder="Ex: Cabo-01"></div>
+      <div class="cm-section"><div class="cm-label">Tipo de cabo</div><div class="cable-type-grid" id="alterar-cable-type-grid"></div></div>
+      <div class="cm-section"><div class="cm-label">Cor no mapa</div><div style="display:flex;gap:10px;align-items:center"><input type="color" id="alterar-cm-color" value="#1D9E75" style="width:40px;height:40px;border-radius:6px"><span style="font-size:12px;color:var(--text2)">Clique para escolher a cor do cabo</span></div></div>
+      <div id="alterar-cm-recent-colors" class="cm-section" style="display:none;padding-top:0;margin-top:-6px"></div>
+    </div>
+    <div class="cm-footer"><button class="cm-btn" onclick="closeAlterarCaboModal()">Cancelar</button><button class="cm-btn primary" onclick="confirmAlterarCabo()">✓ Alterar Cabo</button></div>
+  </div>
+</div>
+
+<!-- Tile Switcher -->
+<div id="tile-switcher">
+  <div id="tile-panel"></div>
+  <div id="tile-btn" onclick="toggleTilePanel()" title="Camadas do mapa">🗺️</div>
+</div>
+
+<!-- Indicador de distância (medição) -->
+<div id="measure-total"></div>
+
+<!-- Ações modo poste / armário -->
+<div id="poste-actions">
+  <button class="ca-btn cancel" onclick="setMode('select')">✕ Sair do Modo</button>
+  <button class="ca-btn confirm" id="poste-confirm-btn" onclick="setMode('select')">✓ Confirmar</button>
+</div>
+
+<!-- Ações modo medir -->
+<div id="medir-actions" class="ca-bar">
+  <button class="ca-btn cancel" onclick="finishMeasure()">✕ Sair do Modo Medir</button>
+</div>
+
+<!-- Ações modo "Mostrar caminho do cabo" -->
+<div id="path-actions">
+  <button class="ca-btn cancel" onclick="closeCablePath()" title="Esc">✕ Sair do Modo (Esc)</button>
+</div>
+
+<!-- Ações modo "Editar ancoragem" -->
+<div id="anchor-edit-actions">
+  <span style="color:#F59E0B;font-size:11px;font-family:var(--mono);margin-right:8px">⚓ Arraste as âncoras</span>
+  <button class="ca-btn cancel" onclick="closeCableAnchoringEdit()" title="Esc">✕ Sair (Esc)</button>
+</div>
+
+<!-- Ações durante traçado de cabo -->
+<div id="cable-actions">
+  <button class="ca-btn cancel" onclick="cancelCabo()">✕ Cancelar</button>
+  <button class="ca-btn confirm" onclick="caboPoints.length>=2?finishCabo():showToast('Adicione pelo menos 2 pontos','warning')">✓ Confirmar Cabo</button>
+</div>
+
+<!-- Painel Histórico -->
+<div id="history-panel">
+  <div id="history-header">
+    <span>Histórico de ações</span>
+    <button onclick="toggleHistoryPanel()" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1">✕</button>
+  </div>
+  <div id="history-list"></div>
+</div>
+
+<!-- Modal CSV -->
+<div id="csv-overlay">
+  <div id="csv-modal">
+    <div class="cm-hdr">
+      <h2>📥 Importar CSV — Postes & Armários</h2>
+      <button class="cm-close" onclick="closeCSVModal()">✕</button>
+    </div>
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);line-height:1.6">
+      Colunas suportadas: <code style="color:var(--green);background:var(--bg3);padding:1px 5px;border-radius:3px">tipo, nome, lat, lng</code> (obrigatórias) +
+      <code style="color:var(--amber);background:var(--bg3);padding:1px 5px;border-radius:3px">obs, capacidade, portas</code> (opcionais) · Separador: vírgula ou ponto-e-vírgula
+    </div>
+    <div style="flex:1;overflow-y:auto;max-height:380px;padding:0">
+      <table id="csv-preview-table"><thead><tr id="csv-thead"></tr></thead><tbody id="csv-tbody"></tbody></table>
+    </div>
+    <div class="csv-summary" id="csv-summary"></div>
+    <div class="cm-footer">
+      <button class="cm-btn" onclick="closeCSVModal()">Cancelar</button>
+      <button class="cm-btn" onclick="downloadCSVTemplate()" style="margin-right:auto">↓ Modelo CSV</button>
+      <button class="cm-btn primary" id="csv-import-btn" onclick="confirmCSVImport()">✓ Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Boas-vindas / Novidades -->
+<div id="welcome-overlay" class="welcome-overlay">
+  <div id="welcome-modal" class="welcome-modal">
+    <button class="w-close" onclick="closeWelcomeModal()" title="Fechar">✕</button>
+    <div class="w-header">
+      <div class="w-icon">🎉</div>
+      <h2>Novidades &amp; Atualizações</h2>
+      <p class="w-subtitle">FiberMap Pro <span class="w-version" id="welcome-version">v8.5</span></p>
+    </div>
+    <div class="w-body">
+      <div class="w-section">
+        <div class="w-section-title">📊 Diagrama de Fibras Ópticas</div>
+        <ul>
+          <li>Painel interativo de cabo (entrada/saída) com fibras hexagonais coloridas no padrão ABNT/EIA</li>
+          <li>Drag &amp; drop entre fibras para conectar — clique e arraste de uma fibra até outra</li>
+          <li>Cabos de 8, 12, 36, 72 FO + tipo Custom suportados</li>
+          <li>Animação tracejada nas conexões mostrando rota ativa</li>
+          <li>Regra: cada fibra só pode ter uma conexão (bloqueia duplicidade)</li>
+          <li>Click numa conexão → seleciona e botão "Remover ligação" aparece no topo</li>
+          <li>Cor da linha = cor da fibra de origem (verde, vermelho, etc.)</li>
+          <li>Marcadores de endpoint mostrando exatamente onde a linha conecta</li>
+          <li>Badge verde ✓ no hexágono indicando fibra ligada</li>
+          <li>Painéis não sobrepõem mais — deslizam pelas bordas</li>
+          <li>Layout reset funciona sem duplicar elementos</li>
+          <li>Conexões órfãs (apontando para elementos removidos) são limpas automaticamente</li>
+        </ul>
+      </div>
+      <div class="w-section">
+        <div class="w-section-title">🗺️ Mapa &amp; Elementos</div>
+        <ul>
+          <li>Postes e armários pretos sólidos com halo branco — visíveis em qualquer tile, inclusive mobile</li>
+          <li>Confirmação ao mover elementos (poste/armário) — popup pergunta antes de fixar nova posição</li>
+          <li>Botão <b>▶ Mostrar caminho</b> nos cabos — anima trajeto A→B com setas de direção e pulso percorrendo</li>
+          <li>Botão <b>↩ Voltar</b> em sub-elementos (CTO, Emenda, Derivação, OLT) → retorna ao poste/armário pai</li>
+          <li>Único tap em qualquer elemento mostra popup com informações</li>
+          <li>Duplo-tap abre o modal de propriedades — funciona em desktop, iPhone e Android</li>
+        </ul>
+      </div>
+      <div class="w-section">
+        <div class="w-section-title">📏 Ferramenta de Medir</div>
+        <ul>
+          <li>Pontos arrastáveis — mova qualquer ponto e distâncias recalculam em tempo real</li>
+          <li>Cada ponto tem popup com distância ao anterior e total acumulado</li>
+          <li>Continue adicionando pontos até clicar "Sair do Modo Medir"</li>
+        </ul>
+      </div>
+      <div class="w-section">
+        <div class="w-section-title">🔧 Ferramentas</div>
+        <ul>
+          <li>Bandeja de ferramentas recolhe automaticamente ao escolher um modo</li>
+          <li>Modo Armário mostra painel de confirmação igual ao Poste</li>
+          <li>Tema escuro fixo (botão de troca removido)</li>
+          <li>Otimizações de touch para iPhone/iPad — sem delay, sem flash, gestos suaves</li>
+        </ul>
+      </div>
+    </div>
+    <div class="w-footer">
+      <label class="w-dontshow">
+        <input type="checkbox" id="welcome-dontshow">
+        <span>Não mostrar novamente</span>
+      </label>
+      <button class="w-ok" onclick="closeWelcomeModal()">OK, entendi</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- ═══════════════ BIBLIOTECAS EXTERNAS ═══════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<!-- ═══════════════ MÓDULOS DO APP ═══════════════ -->
+<!-- Ordem importa: cada arquivo depende dos anteriores -->
+<script src="js/constants.js"></script>  <!-- StateManager, ABNT, CABLE_TYPES, vars globais -->
+<script src="js/map.js"></script>        <!-- Tiles, initMap, ícones, setMode, helpers -->
+<script src="js/elements.js"></script>   <!-- addPoste, addArmario, addSubElement, remove -->
+<script src="js/cables.js"></script>     <!-- Traçado, ancoragem, onMapClick, calcAtt -->
+<script src="js/modals.js"></script>     <!-- openEmModal, propriedades, alterar cabo -->
+<script src="js/fiber.js"></script>      <!-- Diagrama de fibras ópticas -->
+<script src="js/persistence.js"></script><!-- Snapshot, localStorage, KML, GeoJSON, KMZ -->
+<script src="js/ui.js"></script>         <!-- Stats, lista, busca, tema, histórico -->
+<script src="js/tools.js"></script>      <!-- Medição, geolocalização, CSV -->
+<script src="js/app.js"></script>        <!-- Teclado, event listeners, window.onload -->
+
+</body>
+</html>
